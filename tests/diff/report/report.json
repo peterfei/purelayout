@@ -1,0 +1,152 @@
+{
+  "generated": "2026-03-31T14:55:31.380Z",
+  "summary": {
+    "totalFixtures": 23,
+    "passedFixtures": 23,
+    "failedFixtures": 0,
+    "totalComparisons": 188,
+    "passedComparisons": 188,
+    "failedComparisons": 0,
+    "fidelity": 100
+  },
+  "categories": [
+    {
+      "name": "Block",
+      "passed": 11,
+      "failed": 0,
+      "total": 11,
+      "fidelity": 100
+    },
+    {
+      "name": "Inline",
+      "passed": 7,
+      "failed": 0,
+      "total": 7,
+      "fidelity": 100
+    },
+    {
+      "name": "BoxModel",
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "fidelity": 100
+    }
+  ],
+  "fixtures": [
+    {
+      "fixture": "diff/fixtures/block/auto-width.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/basic-margin.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/bfc-overflow.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/empty-margin-collapse.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/margin-collapse-border-stop.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/margin-collapse-mixed.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/margin-collapse-negative.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/margin-collapse-padding-stop.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/margin-collapse-parent-child.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/margin-collapse-siblings.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/block/stacking.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/basic-text.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/cjk-text.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/mixed-block-inline.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/multi-line-text.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/whitespace-normal.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/whitespace-nowrap.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/inline/whitespace-pre.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/box-model/auto-margin-center.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/box-model/box-sizing-border-box.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/box-model/box-sizing-content-box.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/box-model/nested-padding.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/box-model/padding-percentage.html",
+      "passed": true,
+      "failures": []
+    }
+  ]
+}

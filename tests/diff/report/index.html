@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PureLayout 差分测试报告</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace; background: #0d1117; color: #c9d1d9; padding: 24px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-size: 24px; margin-bottom: 8px; color: #58a6ff; }
+  .meta { font-size: 12px; color: #8b949e; margin-bottom: 24px; }
+  .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; text-align: center; }
+  .card .value { font-size: 32px; font-weight: 700; }
+  .card .label { font-size: 12px; color: #8b949e; margin-top: 4px; }
+  .card.pass .value { color: #3fb950; }
+  .card.fail .value { color: #f85149; }
+  .card.info .value { color: #58a6ff; }
+
+  h2 { font-size: 16px; margin: 24px 0 12px; color: #c9d1d9; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; background: #161b22; color: #8b949e; font-weight: 600; border-bottom: 1px solid #30363d; }
+  td { padding: 8px 12px; border-bottom: 1px solid #21262d; }
+  tr:hover td { background: #161b22; }
+  .status-pass { color: #3fb950; font-weight: 600; }
+  .status-fail { color: #f85149; font-weight: 600; }
+  .fixture-name { font-family: monospace; font-size: 12px; color: #c9d1d9; }
+  .bar-container { display: flex; align-items: center; gap: 8px; }
+  .bar { height: 8px; border-radius: 4px; background: #21262d; flex: 1; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+  .bar-fill.pass { background: #3fb950; }
+  .bar-fill.fail { background: #f85149; }
+  .bar-pct { font-size: 12px; min-width: 48px; text-align: right; color: #8b949e; }
+
+  .failure-detail { margin-top: 16px; }
+  .failure-item { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin-bottom: 8px; }
+  .failure-item .fixture-label { font-size: 13px; font-weight: 600; color: #f85149; margin-bottom: 8px; font-family: monospace; }
+  .failure-item table { font-size: 12px; }
+  .failure-item th { font-size: 11px; }
+
+  .empty-state { text-align: center; padding: 32px; color: #3fb950; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>PureLayout 差分测试报告</h1>
+  <div class="meta">生成时间: 2026-03-31T14:55:31.384Z</div>
+
+  <div class="summary">
+    <div class="card info">
+      <div class="value">23</div>
+      <div class="label">Fixtures</div>
+    </div>
+    <div class="card pass">
+      <div class="value">23</div>
+      <div class="label">通过</div>
+    </div>
+    <div class="card pass">
+      <div class="value">0</div>
+      <div class="label">失败</div>
+    </div>
+    <div class="card pass">
+      <div class="value">100%</div>
+      <div class="label">保真度</div>
+    </div>
+  </div>
+
+  <h2>分类统计</h2>
+  <table>
+    <tr><th>分类</th><th>通过</th><th>失败</th><th>保真度</th><th></th></tr>
+    
+    <tr>
+      <td>Block</td>
+      <td class="status-pass">11</td>
+      <td class="status-fail">0</td>
+      <td>100%</td>
+      <td><div class="bar-container"><div class="bar"><div class="bar-fill pass" style="width:100%"></div></div><span class="bar-pct">100%</span></div></td>
+    </tr>
+    <tr>
+      <td>Inline</td>
+      <td class="status-pass">7</td>
+      <td class="status-fail">0</td>
+      <td>100%</td>
+      <td><div class="bar-container"><div class="bar"><div class="bar-fill pass" style="width:100%"></div></div><span class="bar-pct">100%</span></div></td>
+    </tr>
+    <tr>
+      <td>BoxModel</td>
+      <td class="status-pass">5</td>
+      <td class="status-fail">0</td>
+      <td>100%</td>
+      <td><div class="bar-container"><div class="bar"><div class="bar-fill pass" style="width:100%"></div></div><span class="bar-pct">100%</span></div></td>
+    </tr>
+  </table>
+
+  <h2>全部 Fixtures</h2>
+  <table>
+    <tr><th>状态</th><th>Fixture</th><th>对比项</th><th>通过</th><th>失败</th></tr>
+    
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/auto-width.html</td>
+      <td>4</td>
+      <td class="status-pass">4</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/basic-margin.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/bfc-overflow.html</td>
+      <td>16</td>
+      <td class="status-pass">16</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/empty-margin-collapse.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/margin-collapse-border-stop.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/margin-collapse-mixed.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/margin-collapse-negative.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/margin-collapse-padding-stop.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/margin-collapse-parent-child.html</td>
+      <td>12</td>
+      <td class="status-pass">12</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/margin-collapse-siblings.html</td>
+      <td>12</td>
+      <td class="status-pass">12</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/block/stacking.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/basic-text.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/cjk-text.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/mixed-block-inline.html</td>
+      <td>12</td>
+      <td class="status-pass">12</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/multi-line-text.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/whitespace-normal.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/whitespace-nowrap.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/inline/whitespace-pre.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/box-model/auto-margin-center.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/box-model/box-sizing-border-box.html</td>
+      <td>4</td>
+      <td class="status-pass">4</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/box-model/box-sizing-content-box.html</td>
+      <td>4</td>
+      <td class="status-pass">4</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/box-model/nested-padding.html</td>
+      <td>8</td>
+      <td class="status-pass">8</td>
+      <td class="status-fail">0</td>
+    </tr>
+    <tr>
+      <td class="status-pass">PASS</td>
+      <td class="fixture-name">diff/fixtures/box-model/padding-percentage.html</td>
+      <td>4</td>
+      <td class="status-pass">4</td>
+      <td class="status-fail">0</td>
+    </tr>
+  </table>
+
+  <div class="empty-state">All fixtures passed!</div>
+</div>
+</body>
+</html>

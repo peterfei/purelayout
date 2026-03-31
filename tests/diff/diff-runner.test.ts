@@ -12,11 +12,18 @@ import { describe, it, expect } from 'vitest';
 import { layout, FallbackMeasurer, px } from '../../src/index.js';
 import type { StyleNode } from '../../src/types/style.js';
 import { parseCSSValue } from '../../src/css/parser.js';
-import { compareLayout, generateReport, formatReport, type GroundTruth, type DiffResult } from './comparator.js';
+import { compareLayout, generateReport, type GroundTruth, type DiffResult } from './comparator.js';
+import { formatTextReport, formatJsonReport, generateHtmlReport, saveHtmlReport } from './reporter.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const GROUND_TRUTH_DIR = path.join(__dirname, 'ground-truth');
 const FIXTURES_DIR = path.join(__dirname, 'fixtures');
+const REPORT_OUTPUT_DIR = path.join(__dirname, 'report');
+
+// 全局容差配置：FallbackMeasurer 基于字符宽度表估算，与浏览器实际字体渲染存在差异
+// 8px 容差覆盖 CJK 文本和行高估算误差
+const TOLERANCE = 8;
+
 const measurer = new FallbackMeasurer();
 
 /**
@@ -205,9 +212,7 @@ function runSingleDiff(fixtureRelPath: string): DiffResult {
   });
 
   // 查找根节点（跳过最外层自动生成的容器）
-  // FallbackMeasurer 基于字符宽度表估算，与浏览器实际字体渲染存在差异
-  // 8px 容差覆盖 CJK 文本和行高估算误差
-  return compareLayout(truth, result, 8);
+  return compareLayout(truth, result, TOLERANCE);
 }
 
 // ========== 自动生成测试用例 ==========
@@ -238,15 +243,13 @@ describe('Diff: Block layout', () => {
       const result = runSingleDiff(fixture);
 
       if (!result.passed) {
-        // 输出调试信息
         const failures = result.comparisons.filter(c => !c.passed);
-        for (const f of failures) {
-          console.log(`  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)}`);
-        }
+        const details = failures.map(f =>
+          `  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)} (tolerance=${f.tolerance})`
+        ).join('\n');
+        expect.fail(`${fixture} 有 ${failures.length} 项超出容差:\n${details}`);
       }
 
-      // Block layout: track progress but don't fail yet (needs tuning)
-      expect(result).toBeDefined();
       expect(result.comparisons.length).toBeGreaterThan(0);
     });
   }
@@ -261,14 +264,11 @@ describe('Diff: Inline layout', () => {
 
       if (!result.passed) {
         const failures = result.comparisons.filter(c => !c.passed);
-        for (const f of failures) {
-          console.log(`  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)}`);
-        }
+        const details = failures.map(f =>
+          `  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)} (tolerance=${f.tolerance})`
+        ).join('\n');
+        expect.fail(`${fixture} 有 ${failures.length} 项超出容差:\n${details}`);
       }
-
-      // Inline layout has more variance due to text measurement estimation
-      // We track it but allow failures for now
-      expect(result).toBeDefined();
     });
   }
 });
@@ -282,20 +282,19 @@ describe('Diff: Box model', () => {
 
       if (!result.passed) {
         const failures = result.comparisons.filter(c => !c.passed);
-        for (const f of failures) {
-          console.log(`  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)}`);
-        }
+        const details = failures.map(f =>
+          `  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)} (tolerance=${f.tolerance})`
+        ).join('\n');
+        expect.fail(`${fixture} 有 ${failures.length} 项超出容差:\n${details}`);
       }
 
-      // Box model: track progress but don't fail yet (needs tuning)
-      expect(result).toBeDefined();
       expect(result.comparisons.length).toBeGreaterThan(0);
     });
   }
 });
 
 describe('Diff: Overall fidelity report', () => {
-  it('should generate fidelity report', () => {
+  it('should generate fidelity report with all formats', () => {
     const allResults: DiffResult[] = [];
 
     for (const fixture of allGroundTruths) {
@@ -304,15 +303,42 @@ describe('Diff: Overall fidelity report', () => {
     }
 
     const report = generateReport(allResults);
-    const text = formatReport(report);
 
+    // 文本报告
+    const text = formatTextReport(report);
     console.log(`\n${text}\n`);
 
-    // Block + box-model should have high fidelity
-    const blockResults = allResults.filter(r => r.fixture.startsWith('block/') || r.fixture.startsWith('box-model/'));
-    const blockPassed = blockResults.filter(r => r.passed).length;
-    const blockTotal = blockResults.length;
+    // JSON 报告
+    const json = formatJsonReport(report);
+    console.log(`  JSON 报告长度: ${json.length} bytes`);
 
-    console.log(`  Block+BoxModel fidelity: ${((blockPassed / blockTotal) * 100).toFixed(1)}% (${blockPassed}/${blockTotal})`);
+    // 按分类统计保真度
+    const categories = [
+      { name: 'Block', pattern: '/block/' },
+      { name: 'Inline', pattern: '/inline/' },
+      { name: 'BoxModel', pattern: '/box-model/' },
+    ];
+    for (const cat of categories) {
+      const catResults = allResults.filter(r => r.fixture.includes(cat.pattern));
+      const catPassed = catResults.filter(r => r.passed).length;
+      const catTotal = catResults.length;
+      const catPct = catTotal > 0 ? ((catPassed / catTotal) * 100).toFixed(1) : 'N/A';
+      console.log(`  ${cat.name} fidelity: ${catPct}% (${catPassed}/${catTotal})`);
+    }
+
+    // 全量保真度断言
+    expect(report.fidelity).toBe(100);
+    expect(report.failedFixtures).toBe(0);
+
+    // 生成 HTML 报告
+    if (!fs.existsSync(REPORT_OUTPUT_DIR)) {
+      fs.mkdirSync(REPORT_OUTPUT_DIR, { recursive: true });
+    }
+    saveHtmlReport(report, path.join(REPORT_OUTPUT_DIR, 'index.html'));
+    console.log(`  HTML 报告已保存: tests/diff/report/index.html`);
+
+    // 保存 JSON 报告
+    fs.writeFileSync(path.join(REPORT_OUTPUT_DIR, 'report.json'), json);
+    console.log(`  JSON 报告已保存: tests/diff/report/report.json`);
   });
 });

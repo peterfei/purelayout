@@ -81,7 +81,7 @@ export function compareLayout(
 }
 
 /**
- * 生成差分报告
+ * 生成差分报告（聚合统计）
  */
 export function generateReport(results: DiffResult[]): DiffReport {
   let passedFixtures = 0;
@@ -112,43 +112,6 @@ export function generateReport(results: DiffResult[]): DiffReport {
     failedComparisons,
     fidelity: Math.round(fidelity * 100) / 100,
   };
-}
-
-/**
- * 生成人类可读的文本报告
- */
-export function formatReport(report: DiffReport): string {
-  const lines: string[] = [];
-
-  lines.push('═══════════════════════════════════════════════════════');
-  lines.push('  PureLayout 差分测试报告');
-  lines.push('═══════════════════════════════════════════════════════');
-  lines.push('');
-  lines.push(`  保真度: ${report.fidelity}% (${report.passedComparisons}/${report.totalComparisons})`);
-  lines.push(`  Fixtures: ${report.passedFixtures} passed, ${report.failedFixtures} failed`);
-  lines.push('');
-
-  for (const result of report.results) {
-    const status = result.passed ? 'PASS' : 'FAIL';
-    lines.push(`  ${status}  ${result.fixture}`);
-
-    for (const comp of result.comparisons) {
-      if (!comp.passed) {
-        lines.push(
-          `        ${comp.selector} ${comp.property}: ` +
-          `expected=${comp.expected}, actual=${comp.actual}, ` +
-          `diff=${comp.diff.toFixed(2)} (tolerance=${comp.tolerance})`
-        );
-      }
-    }
-  }
-
-  if (report.failedFixtures === 0) {
-    lines.push('');
-    lines.push('  All fixtures passed!');
-  }
-
-  return lines.join('\n');
 }
 
 /**

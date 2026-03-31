@@ -16,18 +16,16 @@
 <body>
     <div id="editor-container">
         <textarea id="code-editor" spellcheck="false">
-// 在这里编写您的 PureLayout 布局代码
-// 示例：定义一个简单的块级元素和它的子元素
+// Write your PureLayout code here
+// Example: Demonstrates margin-collapse and multi-line text wrapping
 
 const rootNode = {
     type: 'block',
     style: {
-        width: '500px',
-        height: '300px',
+        width: '500px', // Containing block width
         padding: '20px',
-        margin: '30px',
         borderWidth: '5px',
-        borderColor: 'black',
+        borderColor: 'grey',
         backgroundColor: '#e0f7fa', // Light Cyan
         display: 'block',
     },
@@ -35,34 +33,55 @@ const rootNode = {
         {
             type: 'block',
             style: {
-                width: '100px',
-                height: '80px',
-                margin: '10px',
+                width: '200px',
+                height: '50px',
+                marginTop: '30px', 
+                marginBottom: '40px',
                 padding: '5px',
                 borderWidth: '2px',
                 borderColor: 'red',
                 backgroundColor: '#ffe0b2', // Light Orange
                 display: 'block',
             },
+            text: 'Block 1 (Top Margin 30px, Bottom Margin 40px)',
+            children: []
+        },
+        {
+            type: 'block',
+            style: {
+                width: '250px',
+                height: '60px',
+                marginTop: '50px', 
+                marginBottom: '20px',
+                padding: '10px',
+                borderWidth: '2px',
+                borderColor: 'blue',
+                backgroundColor: '#c8e6c9', // Light Green
+                display: 'block',
+            },
+            text: 'Block 2 (Top Margin 50px, Bottom Margin 20px). Expect margin-collapse!',
             children: []
         },
         {
             type: 'inline',
             style: {
-                backgroundColor: '#c8e6c9', // Light Green
-                padding: '2px',
+                backgroundColor: '#ffccbc', // Light Orange
+                padding: '5px',
                 borderWidth: '1px',
-                borderColor: 'green',
+                borderColor: 'purple',
                 fontSize: '16px',
+                lineHeight: '1.5',
+                width: '400px', // Limit inline-block width to trigger wrapping
+                display: 'inline-block', // Simulate inline-block
             },
-            text: 'Hello PureLayout!',
+            text: 'This is a very long text that should automatically wrap to demonstrate PureLayout capabilities in handling multi-line text layout. Hopefully, its effect will be clearly visible.',
             children: []
         }
     ]
 };
 
-// 请确保您的代码最终返回一个可供 PureLayout 布局的节点对象。
-return rootNode; 
+// Please ensure your code returns a node object that PureLayout can process.
+return rootNode;
 </textarea>
         <div id="controls">
             <button id="run-button">运行布局</button>
@@ -75,31 +94,34 @@ return rootNode;
 
     <script type="module">
         import { LayoutEngine } from './dist/index.js'; 
-        // ^^^ 确保这里的路径是正确的，相对于 demo.html
-        // 如果 dist 文件夹与 demo.html 同级，路径就是 './dist/index.js'
+        // ^^^ Ensure this path is correct, relative to demo.html
+        // If the dist folder is in the same directory as demo.html, the path is './dist/index.js'
 
         const codeEditor = document.getElementById('code-editor');
         const layoutCanvas = document.getElementById('layout-canvas');
         const ctx = layoutCanvas.getContext('2d');
         const runButton = document.getElementById('run-button');
 
-        const layoutEngine = new LayoutEngine(); // 直接创建 LayoutEngine 实例
+        const layoutEngine = new LayoutEngine(); // Directly create LayoutEngine instance
 
         function runLayout() {
             const code = codeEditor.value;
+            console.log("Code from textarea:", code); // 新增行
+            const fullCodeToExecute = 'return ' + code; // 新增行
+            console.log("Full code to execute for new Function():", fullCodeToExecute); // 新增行
             let layoutResult;
             try {
-                // 动态执行用户输入的代码。
-                // 注意：new Function() 存在安全风险，仅用于本地演示。
-                // 在生产环境中需要更安全的沙箱机制。
-                // 用户输入的代码应该返回一个节点对象。
-                const func = new Function('LayoutEngine', 'return ' + code);
+                // Dynamically execute user-entered code.
+                // Warning: new Function() has security risks and is for local demo purposes only.
+                // A more secure sandbox mechanism is needed for production environments.
+                // User code should return a node object.
+                const func = new Function('LayoutEngine', fullCodeToExecute); // 修改
                 const nodeToLayout = func(LayoutEngine); 
                 layoutResult = layoutEngine.layout(nodeToLayout);
-                console.log("布局计算结果 (layoutResult):", layoutResult); // 添加调试日志
+                console.log("Layout calculation result (layoutResult):", layoutResult); // Add debug log
             } catch (e) {
-                console.error("布局代码执行错误:", e);
-                alert("布局代码执行错误：
+                console.error("Layout code execution error:", e);
+                alert("Layout code execution error：
 " + e.message);
                 return;
             }
@@ -111,80 +133,167 @@ return rootNode;
             ctx.clearRect(0, 0, layoutCanvas.width, layoutCanvas.height);
             ctx.font = '12px Arial';
             ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
-
-            // 直接使用颜色字符串，Canvas 会尝试解析它
-            const parseColor = (colorName) => {
-                // 尝试解析，如果无效则返回默认或透明色
+            ctx.textBaseline = 'alphabetic'; // Text baseline changed to alphabetic
+            
+            // Directly use color string, Canvas will try to parse it
+            const parseColor = (colorName, alpha = 0.8) => {
                 const s = new Option().style;
                 s.color = colorName;
-                return s.color || 'transparent'; 
+                const canvasColor = s.color || 'transparent'; 
+                // Attempt to extract RGB and add alpha
+                const match = canvasColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+                if (match) {
+                    return `rgba(${match[1]}, ${match[2]}, ${match[3]}, ${alpha})`;
+                }
+                // If already rgba or hex, use directly
+                return canvasColor;
             };
 
             function drawBox(node, parentOffsetX = 0, parentOffsetY = 0) {
-                const { layout, style, text, children } = node;
-                console.log("绘制节点:", node); // 添加调试日志
+                const { layout, style, text, children, lineBoxes } = node; // Destructure lineBoxes
+                console.log("Drawing node:", node); // Add debug log
                 if (!layout) {
-                    console.warn("节点没有布局信息:", node); // 添加警告
+                    console.warn("Node has no layout information:", node); // Add warning
                     return;
                 }
 
                 const offsetX = parentOffsetX + layout.position.x;
                 const offsetY = parentOffsetY + layout.position.y;
+                const nodeWidth = layout.width;
+                const nodeHeight = layout.height;
 
-                // 绘制背景 (Content Box)
-                if (style.backgroundColor) {
-                    ctx.fillStyle = parseColor(style.backgroundColor);
-                    ctx.fillRect(offsetX + layout.padding.left + layout.border.left,
-                                 offsetY + layout.padding.top + layout.border.top,
-                                 layout.content.width,
-                                 layout.content.height);
-                }
 
-                // 绘制 Padding (使用半透明灰色)
-                const hasPadding = layout.padding.left || layout.padding.top || layout.padding.right || layout.padding.bottom;
-                if (hasPadding) {
-                    ctx.fillStyle = 'rgba(200, 200, 200, 0.3)'; 
-                    // Top padding
-                    ctx.fillRect(offsetX + layout.border.left, offsetY + layout.border.top, layout.width - layout.border.left - layout.border.right, layout.padding.top);
-                    // Bottom padding
-                    ctx.fillRect(offsetX + layout.border.left, offsetY + layout.height - layout.border.bottom - layout.padding.bottom, layout.width - layout.border.left - layout.border.right, layout.padding.bottom);
-                    // Left padding
-                    ctx.fillRect(offsetX + layout.border.left, offsetY + layout.border.top + layout.padding.top, layout.padding.left, layout.height - layout.border.top - layout.border.bottom - layout.padding.top - layout.padding.bottom);
-                    // Right padding
-                    ctx.fillRect(offsetX + layout.width - layout.border.right - layout.padding.right, offsetY + layout.border.top + layout.padding.top, layout.padding.right, layout.height - layout.border.top - layout.border.bottom - layout.padding.top - layout.padding.bottom);
-                }
-                
-                // 绘制 Border (简化处理，只绘制一个外边框来代表整个边框)
-                const borderWidth = parseFloat(style.borderWidth) || 0;
-                if (borderWidth > 0) {
-                    ctx.strokeStyle = parseColor(style.borderColor) || 'black';
-                    ctx.lineWidth = borderWidth;
-                    ctx.strokeRect(offsetX + borderWidth / 2, offsetY + borderWidth / 2, layout.width - borderWidth, layout.height - borderWidth);
-                }
-
-                // 绘制文本
-                if (text) {
+                // --------------------- Draw Margin Area ---------------------
+                if (layout.margin.top || layout.margin.right || layout.margin.bottom || layout.margin.left) {
+                    ctx.fillStyle = 'rgba(255, 0, 255, 0.1)'; // Light purple transparent
+                    ctx.fillRect(offsetX - layout.margin.left,
+                                 offsetY - layout.margin.top,
+                                 nodeWidth + layout.margin.left + layout.margin.right,
+                                 nodeHeight + layout.margin.top + layout.margin.bottom);
+                    ctx.strokeStyle = 'magenta';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(offsetX - layout.margin.left,
+                                   offsetY - layout.margin.top,
+                                   nodeWidth + layout.margin.left + layout.margin.right,
+                                   nodeHeight + layout.margin.top + layout.margin.bottom);
                     ctx.fillStyle = 'black';
-                    ctx.fillText(text, offsetX + layout.padding.left + layout.border.left, offsetY + layout.padding.top + layout.border.top);
+                    ctx.fillText(`M: ${Math.round(layout.margin.top)}/${Math.round(layout.margin.right)}/${Math.round(layout.margin.bottom)}/${Math.round(layout.margin.left)}`, offsetX - layout.margin.left, offsetY - layout.margin.top - 12);
+                }
+
+
+                // --------------------- Draw Border Area ---------------------
+                // Border Box Area
+                const borderLeft = layout.border.left;
+                const borderTop = layout.border.top;
+                const borderRight = layout.border.right;
+                const borderBottom = layout.border.bottom;
+
+                if (borderLeft || borderTop || borderRight || borderBottom) {
+                    // Draw four sides
+                    ctx.strokeStyle = parseColor(style.borderColor) || 'black';
+                    // Top Border
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, offsetY);
+                    ctx.lineTo(offsetX + nodeWidth, offsetY);
+                    ctx.lineWidth = borderTop;
+                    ctx.stroke();
+                    // Right Border
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX + nodeWidth, offsetY);
+                    ctx.lineTo(offsetX + nodeWidth, offsetY + nodeHeight);
+                    ctx.lineWidth = borderRight;
+                    ctx.stroke();
+                    // Bottom Border
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX + nodeWidth, offsetY + nodeHeight);
+                    ctx.lineTo(offsetX, offsetY + nodeHeight);
+                    ctx.lineWidth = borderBottom;
+                    ctx.stroke();
+                    // Left Border
+                    ctx.beginPath();
+                    ctx.moveTo(offsetX, offsetY + nodeHeight);
+                    ctx.lineTo(offsetX, offsetY);
+                    ctx.lineWidth = borderLeft;
+                    ctx.stroke();
+                }
+
+
+                // --------------------- Draw Padding Area ---------------------
+                // Padding Box Area (does not include margin and border)
+                const paddingX = offsetX + borderLeft;
+                const paddingY = offsetY + borderTop;
+                const paddingWidth = nodeWidth - borderLeft - borderRight;
+                const paddingHeight = nodeHeight - borderTop - borderBottom;
+
+                if (layout.padding.left || layout.padding.top || layout.padding.right || layout.padding.bottom) {
+                    ctx.fillStyle = parseColor(style.backgroundColor, 0.4); // Semi-transparent background color as Padding area
+                    ctx.fillRect(paddingX, paddingY, paddingWidth, paddingHeight);
+                    
+                    ctx.strokeStyle = 'rgba(0, 0, 255, 0.5)'; // Blue transparent stroke
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(paddingX, paddingY, paddingWidth, paddingHeight);
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(`P: ${Math.round(layout.padding.top)}/${Math.round(layout.padding.right)}/${Math.round(layout.padding.bottom)}/${Math.round(layout.padding.left)}`, paddingX, paddingY - 12);
+                }
+
+
+                // --------------------- Draw Content Area ---------------------
+                // Content Box Area
+                const contentX = paddingX + layout.padding.left;
+                const contentY = paddingY + layout.padding.top;
+                const contentWidth = layout.content.width;
+                const contentHeight = layout.content.height;
+
+                if (style.backgroundColor) {
+                    ctx.fillStyle = parseColor(style.backgroundColor, 0.8); // Normal background color
+                    ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
+                    
+                    ctx.strokeStyle = 'rgba(0, 128, 0, 0.5)'; // Green transparent stroke
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(contentX, contentY, contentWidth, contentHeight);
+                    ctx.fillStyle = 'black';
+                    ctx.fillText(`C: ${Math.round(contentWidth)}x${Math.round(contentHeight)}`, contentX, contentY + 12);
+                }
+
+
+                // --------------------- Draw Text (if lineBoxes exist) ---------------------
+                if (lineBoxes && lineBoxes.length > 0) {
+                    ctx.fillStyle = 'black';
+                    ctx.textBaseline = 'alphabetic'; // Ensure text baseline is correct
+                    lineBoxes.forEach(line => {
+                        line.segments.forEach(segment => {
+                            // segment.x, segment.y are relative to the top-left of the Content Box
+                            ctx.fillText(segment.text, contentX + segment.x, contentY + segment.y + segment.height); 
+                            // Draw text box for debugging (uncomment if needed)
+                            // ctx.strokeStyle = 'rgba(255,0,0,0.3)';
+                            // ctx.lineWidth = 1;
+                            // ctx.strokeRect(contentX + segment.x, contentY + segment.y, segment.width, segment.height);
+                        });
+                    });
+                } else if (text) {
+                    // If no lineBoxes but there is text, draw as single line text
+                    ctx.fillStyle = 'black';
+                    ctx.textBaseline = 'top'; // By default, non-line-box text is top-aligned
+                    ctx.fillText(text, contentX, contentY);
                 }
                 
-                // 绘制布局信息 (可选)
-                ctx.fillStyle = 'black';
-                ctx.fillText(`(${Math.round(layout.position.x)},${Math.round(layout.position.y)}) ${Math.round(layout.width)}x${Math.round(layout.height)}`, offsetX, offsetY - 15);
+                // 绘制节点的总布局信息 (Total Box)
+                ctx.fillStyle = 'blue';
+                ctx.textBaseline = 'alphabetic';
+                ctx.fillText(`(${Math.round(layout.position.x)},${Math.round(layout.position.y)}) ${Math.round(nodeWidth)}x${Math.round(nodeHeight)}`, offsetX, offsetY - 30);
 
 
                 // 绘制子元素
                 children.forEach(child => drawBox(child, offsetX, offsetY));
             }
 
-            drawBox(layoutNode); // 从根节点开始绘制
+            drawBox(layoutNode); // Draw from the root node
         }
 
-        // 绑定事件监听器
+        // Bind event listener
         runButton.addEventListener('click', runLayout);
 
-        // 页面加载后自动运行一次
+        // Run once on page load
         runLayout(); 
 
     </script>

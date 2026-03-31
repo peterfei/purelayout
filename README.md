@@ -9,7 +9,8 @@
   <img src="https://img.shields.io/npm/v/purelayout" alt="npm version" />
   <img src="https://img.shields.io/npm/l/purelayout" alt="license" />
   <img src="https://img.shields.io/badge/TypeScript-5.7-blue" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/tests-86%20passed-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/tests-110%20passed-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/fidelity-100%25-brightgreen" alt="fidelity" />
   <img src="https://img.shields.io/badge/zero%20dependencies-success" alt="zero deps" />
 </p>
 
@@ -194,6 +195,50 @@ interface LayoutNode {
 - **软换行**：CJK 字符间自然断点，`word-break` / `overflow-wrap` 控制
 - **空白处理**：完整支持 `white-space` 的 5 种模式
 
+## 差分测试与保真度监控
+
+通过 Playwright 采集浏览器真实渲染数据作为 Ground Truth，与 PureLayout 输出逐像素对比。
+
+### 保真度总览
+
+| 分类 | Fixtures | 通过 | 保真度 |
+|------|----------|------|--------|
+| Block 布局 | 11 | 11 | 100% |
+| Inline 布局 | 7 | 7 | 100% |
+| Box Model | 5 | 5 | 100% |
+| **合计** | **23** | **23** | **100%** |
+
+188 项对比（x/y/width/height），容差 8px（覆盖 FallbackMeasurer 字符宽度估算误差）。
+
+### 覆盖场景
+
+**Block:** auto-width, basic-margin, bfc-overflow, margin-collapse (siblings/parent-child/empty/mixed/negative/border-stop/padding-stop), stacking
+
+**Inline:** basic-text, cjk-text, multi-line-text, mixed-block-inline, whitespace (normal/nowrap/pre)
+
+**Box Model:** auto-margin-center, box-sizing (border-box/content-box), nested-padding, padding-percentage
+
+### 运行
+
+```bash
+# 运行差分测试（自动生成文本/JSON/HTML 报告）
+npm run test:diff
+
+# 重新采集 Ground Truth（需要 Playwright）
+npm run test:diff:capture
+
+# 查看 HTML 可视化报告
+open tests/diff/report/index.html
+```
+
+### 报告输出
+
+| 格式 | 路径 | 说明 |
+|------|------|------|
+| 文本 | 终端输出 | ASCII 表格 + 分类统计 |
+| JSON | `tests/diff/report/report.json` | 机器可读，含完整对比数据 |
+| HTML | `tests/diff/report/index.html` | 暗色主题可视化，含进度条和失败详情 |
+
 ## 项目结构
 
 ```
@@ -232,7 +277,15 @@ purelayout/
 │   │   ├── fallback-measurer.ts
 │   │   └── canvas-measurer.ts
 │   └── utils/format.ts     # 便捷工厂函数
-├── tests/                  # 86 个单元测试
+├── tests/                  # 110 个测试（86 单元 + 24 差分）
+│   ├── unit/               # 单元测试
+│   └── diff/               # 差分测试
+│       ├── capture.ts      # Playwright Ground Truth 采集
+│       ├── comparator.ts   # 结果比较器
+│       ├── reporter.ts     # 报告生成器 (text/json/html)
+│       ├── fixtures/       # HTML 测试固件 (23 个)
+│       ├── ground-truth/   # 浏览器基准数据 (23 个)
+│       └── report/         # 生成的报告
 └── dist/                   # 构建输出 (ESM + CJS + DTS)
 ```
 
@@ -247,6 +300,9 @@ npm run build
 
 # 运行测试
 npm run test:unit
+
+# 差分测试（生成文本/JSON/HTML 报告）
+npm run test:diff
 
 # 类型检查
 npm run lint
@@ -268,7 +324,7 @@ npm test
 - [x] 软换行 (CJK, word-break, overflow-wrap)
 - [x] 空白处理 (white-space 5 种模式)
 - [x] 文本测量抽象 (Fallback + Canvas)
-- [ ] 差分测试框架 (Playwright ground truth 对比)
+- [x] 差分测试框架 (Playwright ground truth 对比)
 
 ### Phase 2 — Flexbox
 
@@ -294,7 +350,7 @@ npm test
 
 ### 高级功能
 
-- [ ] 差分测试框架 + 保真度监控
+- [x] 差分测试框架 + 保真度监控
 - [ ] Pretext 适配器（精确文本测量集成）
 - [ ] `@purelayout/pdf` — PDF 渲染适配器
 - [ ] `@purelayout/canvas` — Canvas 渲染适配器
