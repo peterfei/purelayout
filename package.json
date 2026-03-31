@@ -1,0 +1,59 @@
+{
+  "name": "purelayout",
+  "version": "0.1.0",
+  "description": "Pure JavaScript/TypeScript CSS layout engine — no browser DOM required",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest",
+    "test:unit": "vitest run --dir tests/unit",
+    "test:diff": "vitest run --dir tests/diff",
+    "test:diff:capture": "npx tsx tests/diff/capture.ts",
+    "lint": "tsc --noEmit",
+    "bench": "vitest bench"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0",
+    "playwright": "^1.50.0",
+    "tsx": "^4.19.0"
+  },
+  "optionalDependencies": {
+    "canvas": "^3.1.0"
+  },
+  "peerDependenciesMeta": {
+    "canvas": {
+      "optional": true
+    }
+  },
+  "license": "MIT",
+  "keywords": [
+    "css",
+    "layout",
+    "block",
+    "inline",
+    "ssr",
+    "pdf",
+    "canvas",
+    "typesetting"
+  ]
+}
