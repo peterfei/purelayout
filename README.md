@@ -197,6 +197,46 @@ interface LayoutNode {
 
 `div`, `p`, `h1`-`h6`, `span`, `strong`, `em`, `a`, `ul`, `ol`, `li`, `pre`, `code`, `blockquote`, `article`, `section`, `header`, `footer`, `main`, `nav`, `aside`, `figure`, `figcaption`, `hr`, `body`, `html`, `img`
 
+## 演示
+
+运行 `npm run demo` 查看所有演示效果。
+
+### Flexbox 高级特性
+
+展示 Flexbox 的 12 种布局场景，包括方向、换行、对齐、间距等。
+
+<img src="demos/demo-flexbox.png" alt="Flexbox 高级特性展示" width="800" />
+
+### 排版系统
+
+展示标题、列布局、文本对齐、行高、间距等排版功能。
+
+<img src="demos/demo-typography.png" alt="排版系统演示" width="800" />
+
+### 多语言文本测量
+
+展示 Pretext 集成的精确文本测量，支持 7 种语言（中文、英文、日文、韩文、阿拉伯文、俄文、混合语言）的自动换行。
+
+<img src="demos/demo-multilang.png" alt="多语言文本测量演示" width="800" />
+
+### 响应式布局
+
+展示移动端、平板、桌面三种屏幕尺寸的自适应布局。
+
+<img src="demos/demo-responsive.png" alt="响应式布局演示" width="800" />
+
+### UI 组件
+
+展示按钮、卡片、导航栏、表单等常见 UI 组件的布局。
+
+<img src="demos/demo-ui-components.png" alt="UI 组件布局演示" width="800" />
+
+### 数据可视化
+
+展示仪表盘网格、统计卡片、图表容器、进度条等数据可视化布局。
+
+<img src="demos/demo-data-viz.png" alt="数据可视化布局演示" width="800" />
+
 ## 布局算法
 
 ### Block 布局
@@ -217,10 +257,6 @@ interface LayoutNode {
 - **弹性尺寸**：`flex-grow` / `flex-shrink` / `flex-basis` 空间分配算法
 - **排序**：`order` 属性重排 flex items
 - **间距**：`gap` 简写 + `row-gap` / `column-gap` 独立控制
-
-<p align="center">
-  <img src="demos/demo-flexbox.png" alt="PureLayout Flexbox 高级特性展示 — 12 个布局场景" width="680" />
-</p>
 
 ### Inline 布局
 
