@@ -64,6 +64,8 @@ export { layout, getBoundingClientRect, findNodeBySourceIndex } from './layout/e
 // 文本测量器导出
 export { FallbackMeasurer } from './text/fallback-measurer.js';
 export { CanvasMeasurer } from './text/canvas-measurer.js';
+export { PretextMeasurer } from './text/pretext-measurer.js';
+export type { PretextLayoutLineResult } from './text/pretext-measurer.js';
 
 // 工具函数导出
 export { px, pct, em, rem, auto, normal, none, keyword } from './utils/format.js';
