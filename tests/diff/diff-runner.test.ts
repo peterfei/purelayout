@@ -30,7 +30,8 @@ const measurer = new FallbackMeasurer();
  * 从 HTML fixture 构建 StyleNode 树（栈式解析器，支持嵌套）
  */
 function parseHtmlToStyleNode(html: string): StyleNode {
-  const root: StyleNode = { tagName: 'div', style: {}, children: [] };
+  // 增加 overflow: hidden 以建立 BFC，匹配 capture.ts 中的 #purelayout-container 行为
+  const root: StyleNode = { tagName: 'div', style: { overflow: 'hidden' }, children: [] };
   const stack: StyleNode[] = [root];
 
   // 移除注释

@@ -1,6 +1,6 @@
 {
   "name": "purelayout",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pure JavaScript/TypeScript CSS layout engine — no browser DOM required",
   "author": "peterfei",
   "repository": {

@@ -57,6 +57,10 @@ export function layoutBlockFormattingContext(
 
   node.contentRect.width = width;
 
+  // 初始化折叠 margin
+  node.collapsedMarginTop = marginTop;
+  node.collapsedMarginBottom = marginBottom;
+
   // 2. 布局子元素 (相对于当前节点的 content box，即起点为 0,0)
   const innerWidth = width; 
   const contentOriginX = 0; 
@@ -79,6 +83,7 @@ export function layoutBlockFormattingContext(
         const inlineResult = layoutInlineRun(inlineRun, innerWidth, currentY, options, contentOriginX);
         currentY += inlineResult.totalHeight;
         inlineRun = [];
+        hasPrecedingContent = true;
       }
 
       // 递归布局子元素
@@ -93,17 +98,19 @@ export function layoutBlockFormattingContext(
       const childMarginTop = child.boxModel.marginTop;
       const collapsedMargin = collapseMargins(pendingMarginTop, childMarginTop);
 
-      // 如果这是第一个子元素，且父容器没有 padding/border，则 margin 会折叠到父容器
-      // 在这种情况下，子元素相对于父容器 content box 的偏移不应包含这个 margin
-      const paddingT = resolveLength(node.computedStyle.boxModel.paddingTop);
-      const borderT = resolveLength(node.computedStyle.boxModel.borderTopWidth);
-      const parentCollapses = !hasPrecedingContent && paddingT === 0 && borderT === 0;
+      // 如果这是第一个子元素，且父容器没有 padding/border，且父容器不建立 BFC，则 margin 会折叠到父容器
+      const parentCollapsesTop = !hasPrecedingContent && paddingTop === 0 && borderTop === 0 && !node.establishesBFC;
 
       // 设置子元素位置 (相对于父节点 content box)
       child.contentRect.x = contentOriginX + child.boxModel.marginLeft + child.boxModel.borderLeft + child.boxModel.paddingLeft;
 
-      const effectiveMarginTop = parentCollapses ? 0 : collapsedMargin;
+      const effectiveMarginTop = parentCollapsesTop ? 0 : collapsedMargin;
       child.contentRect.y = currentY + effectiveMarginTop + child.boxModel.borderTop + child.boxModel.paddingTop;
+
+      if (parentCollapsesTop) {
+        // 更新父节点的折叠 margin-top
+        node.collapsedMarginTop = collapseMargins(node.collapsedMarginTop!, collapsedMargin);
+      }
 
       const isSelfCollapsing = child.contentRect.height === 0
         && child.boxModel.paddingTop === 0 && child.boxModel.paddingBottom === 0
@@ -111,7 +118,11 @@ export function layoutBlockFormattingContext(
         && child.children.filter(c => c.type !== 'text' || (c.textContent?.trim() !== '')).length === 0;
 
       if (isSelfCollapsing) {
-        pendingMarginTop = collapseMargins(pendingMarginTop, child.boxModel.marginBottom);
+        pendingMarginTop = collapseMargins(collapsedMargin, child.boxModel.marginBottom);
+        // 如果是自折叠且还在开头，继续影响父节点的 collapsedMarginTop
+        if (parentCollapsesTop) {
+          node.collapsedMarginTop = collapseMargins(node.collapsedMarginTop!, pendingMarginTop);
+        }
       } else {
         currentY = child.contentRect.y + child.contentRect.height + child.boxModel.paddingBottom + child.boxModel.borderBottom;
         pendingMarginTop = child.boxModel.marginBottom;
@@ -125,10 +136,21 @@ export function layoutBlockFormattingContext(
   if (inlineRun.length > 0) {
     const inlineResult = layoutInlineRun(inlineRun, innerWidth, currentY, options, contentOriginX);
     currentY += inlineResult.totalHeight;
+    hasPrecedingContent = true;
   }
 
   // 3. 解析高度
   const contentHeight = currentY - contentOriginY;
   const { height } = resolveHeight(node.computedStyle, containingBlock.height, contentHeight);
   node.contentRect.height = height;
+
+  // 处理 margin-bottom 折叠
+  const parentCollapsesBottom = paddingTop === 0 && borderTop === 0 && height === 0 && paddingBottom === 0 && borderBottom === 0;
+  if (parentCollapsesBottom) {
+    // 全折叠（空容器）：top 和 bottom 都通了
+    node.collapsedMarginTop = collapseMargins(node.collapsedMarginTop!, pendingMarginTop);
+    node.collapsedMarginBottom = node.collapsedMarginTop;
+  } else if (paddingBottom === 0 && borderBottom === 0) {
+    node.collapsedMarginBottom = collapseMargins(node.collapsedMarginBottom!, pendingMarginTop);
+  }
 }

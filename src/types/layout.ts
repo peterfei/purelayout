@@ -42,6 +42,8 @@ export interface LayoutNode {
   children: LayoutNode[];
   lineBoxes?: LineBox[];
   textContent?: string;
+  collapsedMarginTop?: number;
+  collapsedMarginBottom?: number;
 }
 
 // ===== 布局树 =====

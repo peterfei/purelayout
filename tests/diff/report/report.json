@@ -1,11 +1,11 @@
 {
-  "generated": "2026-03-31T16:32:05.471Z",
+  "generated": "2026-04-03T10:14:52.424Z",
   "summary": {
-    "totalFixtures": 48,
-    "passedFixtures": 48,
+    "totalFixtures": 52,
+    "passedFixtures": 52,
     "failedFixtures": 0,
-    "totalComparisons": 476,
-    "passedComparisons": 476,
+    "totalComparisons": 552,
+    "passedComparisons": 552,
     "failedComparisons": 0,
     "fidelity": 100
   },
@@ -270,6 +270,26 @@
     },
     {
       "fixture": "diff/fixtures/flex/wrap-reverse.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/grid/basic-grid.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/grid/fr-grid.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/grid/gap-grid.html",
+      "passed": true,
+      "failures": []
+    },
+    {
+      "fixture": "diff/fixtures/grid/span-grid.html",
       "passed": true,
       "failures": []
     }

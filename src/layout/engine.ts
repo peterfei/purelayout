@@ -43,18 +43,12 @@ export function layout(root: StyleNode, options: LayoutOptions): LayoutTree {
 
   // 处理 parent-child margin-top collapse（对根节点）
   if (rootLayout.computedStyle && canCollapseParentChildMarginTop(rootLayout.computedStyle.boxModel)) {
-    // 找到第一个实际参与布局且非空的 block 子元素
-    const firstBlockChild = rootLayout.children.find(c => {
-      if (c.type === 'block' || c.type === 'flex' || c.type === 'grid') return true;
-      if (c.type === 'text' && c.textContent && c.textContent.trim() !== '') return true;
-      return false;
-    });
-
-    if (firstBlockChild && (firstBlockChild.type === 'block' || firstBlockChild.type === 'flex' || firstBlockChild.type === 'grid')) {
-      const childMarginTop = firstBlockChild.boxModel.marginTop;
-      if (childMarginTop > 0) {
-        rootLayout.contentRect.y += childMarginTop;
-      }
+    const collapsedMarginTop = rootLayout.collapsedMarginTop ?? 0;
+    const initialMarginTop = resolveLength(rootLayout.computedStyle.boxModel.marginTop, options.containerWidth);
+    
+    // 如果折叠后的 margin 比初始值大，说明子元素的 margin 溢出了
+    if (collapsedMarginTop > initialMarginTop) {
+      rootLayout.contentRect.y += (collapsedMarginTop - initialMarginTop);
     }
   }
 
