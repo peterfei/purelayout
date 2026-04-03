@@ -9,7 +9,7 @@ import { INITIAL_BOX_MODEL, INITIAL_FLEX, INITIAL_GRID } from './initial.js';
 import { getUADefaults } from './initial.js';
 import { resolveInheritedStyle } from './inherit.js';
 import { INHERITABLE_PROPERTIES } from './properties.js';
-import { parseTrackList, parseSlashValues } from './parser.js';
+import { parseTrackList, parseSlashValues, parseCSSValue } from './parser.js';
 
 /**
  * 解析相对值为绝对值（em/rem）
@@ -72,7 +72,9 @@ export function computeStyle(
 
   // 7. 合并 Flexbox 属性：用户值 > 初始值
   // gap shorthand 展开：gap → rowGap + columnGap
-  const userGap = userStyle.gap as CSSValue | undefined;
+  let userGap = userStyle.gap as CSSValue | string | undefined;
+  if (typeof userGap === 'string') userGap = parseCSSValue(userGap);
+
   const hasRowGap = 'rowGap' in userStyle;
   const hasColGap = 'columnGap' in userStyle;
 
@@ -82,7 +84,7 @@ export function computeStyle(
   } as unknown as Required<FlexStyle>;
 
   // 如果设置了 gap 但没单独设置 rowGap/columnGap，则用 gap 值覆盖
-  if (userGap && userGap.type === 'length') {
+  if (userGap && typeof userGap !== 'string' && userGap.type === 'length') {
     if (!hasRowGap) flex.rowGap = userGap;
     if (!hasColGap) flex.columnGap = userGap;
   }
@@ -92,6 +94,12 @@ export function computeStyle(
     ...INITIAL_GRID,
     ...userStyle,
   } as unknown as ComputedGridStyle;
+
+  // 如果设置了 gap 但没单独设置 rowGap/columnGap，则用 gap 值覆盖 (针对 Grid)
+  if (userGap && typeof userGap !== 'string' && userGap.type === 'length') {
+    if (!('rowGap' in userStyle)) grid.rowGap = userGap;
+    if (!('columnGap' in userStyle)) grid.columnGap = userGap;
+  }
 
   // 解析模板字符串
   if (typeof userStyle.gridTemplateColumns === 'string') {
@@ -106,11 +114,6 @@ export function computeStyle(
   if (typeof userStyle.gridColumnEnd === 'string') grid.gridColumnEnd = parseCSSValue(userStyle.gridColumnEnd);
   if (typeof userStyle.gridRowStart === 'string') grid.gridRowStart = parseCSSValue(userStyle.gridRowStart);
   if (typeof userStyle.gridRowEnd === 'string') grid.gridRowEnd = parseCSSValue(userStyle.gridRowEnd);
-
-  if (userGap && userGap.type === 'length') {
-    if (!('rowGap' in userStyle)) grid.rowGap = userGap;
-    if (!('columnGap' in userStyle)) grid.columnGap = userGap;
-  }
 
   return { boxModel, inherited, flex, grid };
 }
@@ -169,8 +172,9 @@ export function resolveLength(value: CSSValue | number | undefined, fallback: nu
   // 直接的数字（像素值）
   if (typeof value === 'number') return value;
   // CSSValue 对象
-  if (value.type === 'length') return value.value;
+  if (value.type === 'length' || value.type === 'integer') return value.value;
   if (value.type === 'percentage') return value.value / 100 * fallback;
+  if (value.type === 'fr') return 0; // fr units are resolved by the layout engine
   if (value.type === 'em' || value.type === 'rem') {
     // 如果还是相对值说明没有 resolve，用 fallback
     return value.value * 16;

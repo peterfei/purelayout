@@ -43,17 +43,35 @@ export function layout(root: StyleNode, options: LayoutOptions): LayoutTree {
 
   // 处理 parent-child margin-top collapse（对根节点）
   if (rootLayout.computedStyle && canCollapseParentChildMarginTop(rootLayout.computedStyle.boxModel)) {
-    const firstBlockChild = rootLayout.children.find(c => c.type === 'block');
-    if (firstBlockChild && firstBlockChild.computedStyle) {
-      const childMarginTop = resolveLength(firstBlockChild.computedStyle.boxModel.marginTop, options.containerWidth);
+    // 找到第一个实际参与布局且非空的 block 子元素
+    const firstBlockChild = rootLayout.children.find(c => {
+      if (c.type === 'block' || c.type === 'flex' || c.type === 'grid') return true;
+      if (c.type === 'text' && c.textContent && c.textContent.trim() !== '') return true;
+      return false;
+    });
+
+    if (firstBlockChild && (firstBlockChild.type === 'block' || firstBlockChild.type === 'flex' || firstBlockChild.type === 'grid')) {
+      const childMarginTop = firstBlockChild.boxModel.marginTop;
       if (childMarginTop > 0) {
         rootLayout.contentRect.y += childMarginTop;
-        rootLayout.contentRect.height -= childMarginTop;
       }
     }
   }
 
+  // 后处理：将相对坐标转换为绝对坐标
+  finalizeAbsolutePositions(rootLayout, rootLayout.contentRect.x, rootLayout.contentRect.y);
+
   return { root: rootLayout, options };
+}
+
+function finalizeAbsolutePositions(node: LayoutNode, absX: number, absY: number): void {
+  for (const child of node.children) {
+    const childAbsX = absX + child.contentRect.x;
+    const childAbsY = absY + child.contentRect.y;
+    child.contentRect.x = childAbsX;
+    child.contentRect.y = childAbsY;
+    finalizeAbsolutePositions(child, childAbsX, childAbsY);
+  }
 }
 
 function buildLayoutTree(node: StyleNode, parentComputed: ComputedStyle | null, options: LayoutOptions): LayoutNode {

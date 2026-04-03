@@ -67,7 +67,14 @@ export function layoutGridFormattingContext(
   let autoRow = 1;
   let autoCol = 1;
 
-  for (const child of node.children) {
+  // 过滤掉不参与布局的节点（如空文本节点、display: none）
+  const childrenToLayout = node.children.filter(child => {
+    if (child.type === 'text' && (!child.textContent || child.textContent.trim() === '')) return false;
+    if (child.computedStyle?.boxModel.display === 'none') return false;
+    return true;
+  });
+
+  for (const child of childrenToLayout) {
     const cs = child.computedStyle.grid;
     
     // 确定列范围
@@ -113,7 +120,15 @@ export function layoutGridFormattingContext(
     if (cellW === 0) cellW = width;
 
     const cellH = rowTracks[rowIdx] || 0;
-    const childCB: ContainingBlock = { width: cellW, height: cellH || undefined };
+    
+    // Grid items 默认 stretch (如果高度是 auto)
+    const childBoxStyle = child.computedStyle.boxModel;
+    const isStretchH = childBoxStyle.height.type === 'keyword' && childBoxStyle.height.value === 'auto';
+
+    const childCB: ContainingBlock = { 
+      width: cellW, 
+      height: (isStretchH && cellH > 0) ? cellH : (cellH || undefined) 
+    };
 
     if (child.type === 'flex') {
       layoutFlexFormattingContext(child, childCB, options);
@@ -121,6 +136,15 @@ export function layoutGridFormattingContext(
       layoutGridFormattingContext(child, childCB, options);
     } else {
       layoutBlockFormattingContext(child, childCB, options);
+    }
+
+    // 执行 stretch 对齐：如果子元素高度为 auto 且单元格高度固定，则拉伸
+    if (isStretchH && cellH > 0) {
+      const pT = resolveLength(child.computedStyle?.boxModel.paddingTop || 0, cellW);
+      const pB = resolveLength(child.computedStyle?.boxModel.paddingBottom || 0, cellW);
+      const bT = resolveLength(child.computedStyle?.boxModel.borderTopWidth || 0);
+      const bB = resolveLength(child.computedStyle?.boxModel.borderBottomWidth || 0);
+      child.contentRect.height = Math.max(child.contentRect.height, cellH - pT - pB - bT - bB);
     }
 
     // 自动高度修正
@@ -151,7 +175,7 @@ export function layoutGridFormattingContext(
 }
 
 function getGridLine(val: any, fallback: number): number {
-  if (val && val.type === 'integer') return val.value;
+  if (val && (val.type === 'integer' || val.type === 'length')) return val.value;
   return fallback;
 }
 

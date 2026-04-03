@@ -84,13 +84,7 @@ export function parseCSSValue(input: string): CSSValue {
     if (unit === 'rem') return { type: 'rem', value } as CSSRelativeLength;
   }
 
-  // 纯整数 (用于 grid-column 等)
-  const intMatch = trimmed.match(/^([+-]?\d+)$/);
-  if (intMatch) {
-    return { type: 'integer', value: parseInt(intMatch[1]) } as CSSInteger;
-  }
-
-  // 纯数字（带小数点，无单位，可能是 0）
+  // 纯数字（无单位，可能是 0 或裸 10，默认为 px）
   const numMatch = trimmed.match(/^([+-]?\d*\.?\d+)$/);
   if (numMatch) {
     return { type: 'length', value: parseFloat(numMatch[1]), unit: 'px' } as CSSLength;

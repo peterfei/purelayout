@@ -135,7 +135,7 @@ function roundRect(x, y, w, h, r) {
 function renderLayout(layoutRoot, offsetX, offsetY) {
   const rects = [], texts = [], circles = [];
 
-  function collect(node, px, py) {
+  function collect(node) {
     const cr = node.contentRect;
     const cs = node.computedStyle;
     const inherited = cs.inherited;
@@ -146,8 +146,9 @@ function renderLayout(layoutRoot, offsetX, offsetY) {
     const hasSize = cr.width > 0 && cr.height > 0;
 
     // 当前节点的 Content Box 在画布上的绝对坐标
-    const absX = px + cr.x;
-    const absY = py + cr.y;
+    // 叠加卡片自身的偏移
+    const absX = offsetX + cr.x;
+    const absY = offsetY + cr.y;
 
     if (hasSize && !hasLineBoxes && !hasChildren) {
       if (cr.width === cr.height && cr.width <= 14) {
@@ -164,20 +165,22 @@ function renderLayout(layoutRoot, offsetX, offsetY) {
           if (frag.text !== undefined) {
             texts.push({
               text: frag.text,
-              // frag.x/y 是相对于当前节点 Content Box 的
-              x: absX + frag.x,
-              y: absY + line.y + (frag.baseline || line.baseline),
+              // 注意：最新的引擎中，frag.x 已经包含在 contentRect.x 中，或者其自身就是绝对偏移（取决于 IFC 实现）
+              // 但在 PureLayout 中，frag.x 是相对于 Block Container 内容区的偏移。
+              // 而 contentRect.x 是绝对坐标。
+              // 所以正确公式是：offsetX + frag.x
+              x: offsetX + frag.x,
+              y: offsetY + line.y + (frag.baseline || line.baseline),
               fontSize, fontStyle: inherited.fontStyle, fontWeight: inherited.fontWeight, color: itemColor,
             });
           }
         });
       });
     }
-    // 递归子节点，传入当前节点的 Content Box 坐标作为基准
-    node.children?.forEach(child => collect(child, absX, absY));
+    node.children?.forEach(child => collect(child));
   }
 
-  collect(layoutRoot, offsetX, offsetY);
+  collect(layoutRoot);
 
   rects.forEach(r => { ctx.fillStyle = r.color; ctx.fillRect(r.x, r.y, r.w, r.h); });
   circles.forEach(c => { ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2); ctx.fillStyle = c.color; ctx.fill(); });

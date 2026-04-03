@@ -166,25 +166,34 @@ function parseStyleString(styleStr: string): Record<string, unknown> {
                camelProp === 'whiteSpace' || camelProp === 'wordBreak' || camelProp === 'overflowWrap' ||
                camelProp === 'textAlign' || camelProp === 'verticalAlign' || camelProp === 'textTransform' ||
                camelProp === 'flexDirection' || camelProp === 'flexWrap' || camelProp === 'justifyContent' ||
-               camelProp === 'alignItems' || camelProp === 'alignSelf' || camelProp === 'alignContent') {
-      // 枚举类型属性：直接使用字符串值
-      const enumValues = new Set([
-        'border-box', 'content-box', 'block', 'inline', 'inline-block', 'none', 'flex',
-        'hidden', 'visible', 'scroll', 'auto', 'normal', 'nowrap', 'pre',
-        'pre-wrap', 'pre-line', 'break-all', 'break-word', 'keep-all', 'anywhere',
-        'left', 'right', 'center', 'justify', 'top', 'middle', 'bottom',
-        'baseline', 'uppercase', 'lowercase', 'capitalize',
-        'row', 'row-reverse', 'column', 'column-reverse',
-        'wrap', 'wrap-reverse',
-        'flex-start', 'flex-end', 'space-between', 'space-around', 'space-evenly',
-        'stretch',
-      ]);
+               camelProp === 'alignItems' || camelProp === 'alignSelf' || camelProp === 'alignContent' ||
+               camelProp === 'gridAutoFlow' || camelProp === 'justifyItems') {
+               // 枚举类型属性：直接使用字符串值
+               const enumValues = new Set([
+               'border-box', 'content-box', 'block', 'inline', 'inline-block', 'none', 'flex', 'grid',
+               'hidden', 'visible', 'scroll', 'auto', 'normal', 'nowrap', 'pre',
+               'pre-wrap', 'pre-line', 'break-all', 'break-word', 'keep-all', 'anywhere',
+               'left', 'right', 'center', 'justify', 'top', 'middle', 'bottom',
+               'baseline', 'uppercase', 'lowercase', 'capitalize',
+               'row', 'row-reverse', 'column', 'column-reverse',
+               'wrap', 'wrap-reverse',
+               'flex-start', 'flex-end', 'space-between', 'space-around', 'space-evenly',
+               'stretch', 'start', 'end', 'dense',
+               ]);
+
       if (enumValues.has(value)) {
         style[camelProp] = value;
       }
     } else if (camelProp === 'flexGrow' || camelProp === 'flexShrink' || camelProp === 'order') {
       // 数值类型 flexbox 属性
       style[camelProp] = parseFloat(value);
+    } else if (camelProp === 'gridTemplateColumns' || camelProp === 'gridTemplateRows' ||
+               camelProp === 'gridColumn' || camelProp === 'gridRow' ||
+               camelProp === 'gridColumnStart' || camelProp === 'gridColumnEnd' ||
+               camelProp === 'gridRowStart' || camelProp === 'gridRowEnd' ||
+               camelProp === 'gap' || camelProp === 'rowGap' || camelProp === 'columnGap') {
+      // Grid 模板与定位属性：作为字符串保留，交给 cascade.ts 解析
+      style[camelProp] = value;
     } else {
       try {
         style[camelProp] = parseCSSValue(value);
@@ -228,7 +237,7 @@ function runSingleDiff(fixtureRelPath: string): DiffResult {
 
 function loadAllGroundTruths(): string[] {
   const files: string[] = [];
-  const dirs = ['block', 'inline', 'box-model', 'flex'];
+  const dirs = ['block', 'inline', 'box-model', 'flex', 'grid'];
 
   for (const dir of dirs) {
     const dirPath = path.join(GROUND_TRUTH_DIR, dir);
@@ -322,6 +331,26 @@ describe('Diff: Flex layout', () => {
   }
 });
 
+describe('Diff: Grid layout', () => {
+  const gridFixtures = allGroundTruths.filter(f => f.startsWith('grid/'));
+
+  for (const fixture of gridFixtures) {
+    it(fixture, () => {
+      const result = runSingleDiff(fixture);
+
+      if (!result.passed) {
+        const failures = result.comparisons.filter(c => !c.passed);
+        const details = failures.map(f =>
+          `  ${f.selector} ${f.property}: expected=${f.expected}, actual=${f.actual}, diff=${f.diff.toFixed(2)} (tolerance=${f.tolerance})`
+        ).join('\n');
+        expect.fail(`${fixture} 有 ${failures.length} 项超出容差:\n${details}`);
+      }
+
+      expect(result.comparisons.length).toBeGreaterThan(0);
+    });
+  }
+});
+
 describe('Diff: Overall fidelity report', () => {
   it('should generate fidelity report with all formats', () => {
     const allResults: DiffResult[] = [];
@@ -347,6 +376,7 @@ describe('Diff: Overall fidelity report', () => {
       { name: 'Inline', pattern: '/inline/' },
       { name: 'BoxModel', pattern: '/box-model/' },
       { name: 'Flex', pattern: '/flex/' },
+      { name: 'Grid', pattern: '/grid/' },
     ];
     for (const cat of categories) {
       const catResults = allResults.filter(r => r.fixture.includes(cat.pattern));

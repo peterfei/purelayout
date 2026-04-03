@@ -10,6 +10,7 @@ import { resolveLength } from '../../css/cascade.js';
 import { isBlockLevel } from './block-level.js';
 import { layoutInlineRun } from '../inline/inline-formatting.js';
 import { layoutFlexFormattingContext } from '../flex/flex-formatting.js';
+import { layoutGridFormattingContext } from '../grid/grid-formatting.js';
 
 /**
  * 布局一个 BFC
@@ -62,6 +63,7 @@ export function layoutBlockFormattingContext(
   const contentOriginY = 0;
   let currentY = contentOriginY;
   let pendingMarginTop = 0;
+  let hasPrecedingContent = false;
   const childContainingBlock: ContainingBlock = { width: innerWidth, height: undefined };
 
   let inlineRun: LayoutNode[] = [];
@@ -82,16 +84,26 @@ export function layoutBlockFormattingContext(
       // 递归布局子元素
       if (child.type === 'flex') {
         layoutFlexFormattingContext(child, childContainingBlock, options);
+      } else if (child.type === 'grid') {
+        layoutGridFormattingContext(child, childContainingBlock, options);
       } else {
         layoutBlockFormattingContext(child, childContainingBlock, options);
       }
 
       const childMarginTop = child.boxModel.marginTop;
-      pendingMarginTop = collapseMargins(pendingMarginTop, childMarginTop);
+      const collapsedMargin = collapseMargins(pendingMarginTop, childMarginTop);
+
+      // 如果这是第一个子元素，且父容器没有 padding/border，则 margin 会折叠到父容器
+      // 在这种情况下，子元素相对于父容器 content box 的偏移不应包含这个 margin
+      const paddingT = resolveLength(node.computedStyle.boxModel.paddingTop);
+      const borderT = resolveLength(node.computedStyle.boxModel.borderTopWidth);
+      const parentCollapses = !hasPrecedingContent && paddingT === 0 && borderT === 0;
 
       // 设置子元素位置 (相对于父节点 content box)
       child.contentRect.x = contentOriginX + child.boxModel.marginLeft + child.boxModel.borderLeft + child.boxModel.paddingLeft;
-      child.contentRect.y = currentY + pendingMarginTop + child.boxModel.borderTop + child.boxModel.paddingTop;
+
+      const effectiveMarginTop = parentCollapses ? 0 : collapsedMargin;
+      child.contentRect.y = currentY + effectiveMarginTop + child.boxModel.borderTop + child.boxModel.paddingTop;
 
       const isSelfCollapsing = child.contentRect.height === 0
         && child.boxModel.paddingTop === 0 && child.boxModel.paddingBottom === 0
@@ -103,6 +115,7 @@ export function layoutBlockFormattingContext(
       } else {
         currentY = child.contentRect.y + child.contentRect.height + child.boxModel.paddingBottom + child.boxModel.borderBottom;
         pendingMarginTop = child.boxModel.marginBottom;
+        hasPrecedingContent = true;
       }
     } else {
       inlineRun.push(child);

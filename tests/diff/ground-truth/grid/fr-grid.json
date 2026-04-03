@@ -1,0 +1,44 @@
+{
+  "fixture": "diff/fixtures/grid/fr-grid.html",
+  "container": {
+    "width": 800
+  },
+  "elements": [
+    {
+      "selector": "[data-test-id=\"grid\"]",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 600,
+        "height": 100
+      }
+    },
+    {
+      "selector": "[data-test-id=\"item1\"]",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 100,
+        "height": 100
+      }
+    },
+    {
+      "selector": "[data-test-id=\"item2\"]",
+      "rect": {
+        "x": 100,
+        "y": 0,
+        "width": 166.66,
+        "height": 100
+      }
+    },
+    {
+      "selector": "[data-test-id=\"item3\"]",
+      "rect": {
+        "x": 266.66,
+        "y": 0,
+        "width": 333.34,
+        "height": 100
+      }
+    }
+  ]
+}

@@ -98,7 +98,7 @@ async function main() {
     fixtureFiles = args.map(f => path.resolve(f));
   } else {
     fixtureFiles = [];
-    const dirs = ['block', 'inline', 'box-model', 'flex'];
+    const dirs = ['block', 'inline', 'box-model', 'flex', 'grid'];
     for (const dir of dirs) {
       const dirPath = path.join(fixturesDir, dir);
       if (!fs.existsSync(dirPath)) continue;
