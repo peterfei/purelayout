@@ -131,13 +131,15 @@ console.log(result.root.children[1].contentRect);
 
 ## 路线图
 
-### Phase 3 — Grid (已完成)
+### Phase 3 — Grid (进行中)
 
 - [x] grid-template-rows / grid-template-columns
 - [x] fr 弹性单位
 - [x] repeat() 函数解析
-- [x] grid-column / grid-row 显式定位
-- [x] 100% 浏览器保真度
+- [x] grid-column / grid-row 显式定位 (Span)
+- [ ] grid-area 命名区域
+- [ ] auto-fill / auto-fit 弹性平铺
+- [x] 100% 浏览器保真度 (基础)
 
 ### Phase 4 — 定位与浮动
 
@@ -145,6 +147,14 @@ console.log(result.root.children[1].contentRect);
 - [ ] float / clear
 - [ ] z-index
 - [ ] Table 布局
+
+### 高级功能
+
+- [x] 差分测试框架 + 保真度监控
+- [x] Pretext 适配器 (精确文本测量集成)
+- [ ] `@purelayout/pdf` — PDF 渲染适配器
+- [ ] `@purelayout/canvas` — Canvas 渲染适配器
+- [ ] `parseStyleNode(html)` — HTML 字符串快速解析
 
 ## 许可证
 
