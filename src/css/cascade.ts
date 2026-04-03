@@ -3,9 +3,9 @@
  *
  * 将用户样式、UA 默认值、继承值合并为 ComputedStyle。
  */
-import type { StyleNode, ComputedStyle, BoxModelStyle, InheritedStyle, FlexStyle } from '../types/style.js';
+import type { StyleNode, ComputedStyle, BoxModelStyle, InheritedStyle, FlexStyle, GridStyle } from '../types/style.js';
 import type { CSSValue } from '../types/css-values.js';
-import { INITIAL_BOX_MODEL, INITIAL_FLEX } from './initial.js';
+import { INITIAL_BOX_MODEL, INITIAL_FLEX, INITIAL_GRID } from './initial.js';
 import { getUADefaults } from './initial.js';
 import { resolveInheritedStyle } from './inherit.js';
 import { INHERITABLE_PROPERTIES } from './properties.js';
@@ -85,7 +85,18 @@ export function computeStyle(
     if (!hasColGap) flex.columnGap = userGap;
   }
 
-  return { boxModel, inherited, flex };
+  // 8. 合并 Grid 属性：用户值 > 初始值
+  const grid: Required<GridStyle> = {
+    ...INITIAL_GRID,
+    ...userStyle,
+  } as unknown as Required<GridStyle>;
+
+  if (userGap && userGap.type === 'length') {
+    if (!('rowGap' in userStyle)) grid.rowGap = userGap;
+    if (!('columnGap' in userStyle)) grid.columnGap = userGap;
+  }
+
+  return { boxModel, inherited, flex, grid };
 }
 
 /**

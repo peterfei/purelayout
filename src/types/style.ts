@@ -11,7 +11,7 @@ import type {
 
 // ===== 显示与盒模型属性类型 =====
 
-export type DisplayValue = 'block' | 'inline' | 'inline-block' | 'flex' | 'none';
+export type DisplayValue = 'block' | 'inline' | 'inline-block' | 'flex' | 'grid' | 'none';
 
 export type OverflowValue = 'visible' | 'hidden' | 'scroll' | 'auto';
 
@@ -47,6 +47,24 @@ export interface FlexStyle {
   flexBasis: CSSDimensionValue;
   alignSelf: AlignSelfValue;
   order: number;
+  gap: CSSDimensionValue;
+  rowGap: CSSDimensionValue;
+  columnGap: CSSDimensionValue;
+}
+
+// ===== Grid 属性 =====
+
+export interface GridStyle {
+  gridTemplateColumns: CSSValue[];
+  gridTemplateRows: CSSValue[];
+  gridAutoColumns: CSSValue[];
+  gridAutoRows: CSSValue[];
+  gridAutoFlow: 'row' | 'column' | 'row dense' | 'column dense';
+  gridColumnStart: CSSValue;
+  gridColumnEnd: CSSValue;
+  gridRowStart: CSSValue;
+  gridRowEnd: CSSValue;
+  justifyItems: 'stretch' | 'start' | 'end' | 'center';
   gap: CSSDimensionValue;
   rowGap: CSSDimensionValue;
   columnGap: CSSDimensionValue;
@@ -102,7 +120,7 @@ export interface BoxModelStyle {
 
 export interface StyleNode {
   tagName: string;
-  style: Partial<BoxModelStyle & InheritedStyle & FlexStyle>;
+  style: Partial<BoxModelStyle & InheritedStyle & FlexStyle & GridStyle>;
   children: (StyleNode | string)[];
 }
 
@@ -112,4 +130,5 @@ export interface ComputedStyle {
   boxModel: Required<BoxModelStyle>;
   inherited: Required<InheritedStyle>;
   flex: Required<FlexStyle>;
+  grid: Required<GridStyle>;
 }

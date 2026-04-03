@@ -29,6 +29,12 @@ export interface CSSRelativeLength {
   value: number;
 }
 
+/** 弹性系数 (fr) */
+export interface CSSFlexibleLength {
+  type: 'fr';
+  value: number;
+}
+
 /** CSS calc() 表达式 */
 export interface CSSCalc {
   type: 'calc';
@@ -48,6 +54,7 @@ export type CSSValue =
   | CSSKeyword
   | CSSCalc
   | CSSRelativeLength
+  | CSSFlexibleLength
   | CSSColor;
 
 /** 允许 auto 的维度值 */

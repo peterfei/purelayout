@@ -8,6 +8,7 @@ import { computeStyle, resolveLength } from '../css/cascade.js';
 import { determineContainingBlock } from './containing-block.js';
 import { layoutBlockFormattingContext } from './block/block-formatting.js';
 import { layoutFlexFormattingContext } from './flex/flex-formatting.js';
+import { layoutGridFormattingContext } from './grid/grid-formatting.js';
 import { establishesBFC } from './block/bfc.js';
 import { canCollapseParentChildMarginTop } from './block/margin-collapse.js';
 
@@ -32,7 +33,9 @@ export function layout(root: StyleNode, options: LayoutOptions): LayoutTree {
   rootLayout.contentRect.x = bl + pl;
   rootLayout.contentRect.y = bt + pt;
 
-  if (rootLayout.type === 'flex') {
+  if (rootLayout.type === 'grid') {
+    layoutGridFormattingContext(rootLayout, containingBlock, options);
+  } else if (rootLayout.type === 'flex') {
     layoutFlexFormattingContext(rootLayout, containingBlock, options);
   } else {
     layoutBlockFormattingContext(rootLayout, containingBlock, options);
@@ -58,11 +61,12 @@ function buildLayoutTree(node: StyleNode, parentComputed: ComputedStyle | null, 
   const sourceIndex = assignSourceIndex();
   const display = computedStyle.boxModel.display;
   const isFlex = display === 'flex';
-  const isBlock = display === 'block' || display === 'inline-block' || isFlex;
+  const isGrid = display === 'grid';
+  const isBlock = display === 'block' || display === 'inline-block' || isFlex || isGrid;
 
   const layoutNode: LayoutNode = {
     sourceIndex,
-    type: isFlex ? 'flex' : (isBlock ? 'block' : 'inline'),
+    type: isGrid ? 'grid' : (isFlex ? 'flex' : (isBlock ? 'block' : 'inline')),
     tagName: node.tagName,
     testId: (node.style as Record<string, unknown>)['dataTestId'] as string | undefined,
     computedStyle,

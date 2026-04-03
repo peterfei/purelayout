@@ -1,7 +1,7 @@
 /**
  * UA 样式表 — 浏览器默认样式
  */
-import type { BoxModelStyle, InheritedStyle, FlexStyle } from '../types/style.js';
+import type { BoxModelStyle, InheritedStyle, FlexStyle, GridStyle } from '../types/style.js';
 import { px } from '../utils/format.js';
 
 /** 属性初始值 */
@@ -104,3 +104,21 @@ export const INITIAL_FLEX: Required<FlexStyle> = {
   rowGap: { type: 'keyword', value: 'normal' },
   columnGap: { type: 'keyword', value: 'normal' },
 };
+
+/** Grid 属性初始值 */
+export const INITIAL_GRID: Required<GridStyle> = {
+  gridTemplateColumns: [],
+  gridTemplateRows: [],
+  gridAutoColumns: [{ type: 'keyword', value: 'auto' }],
+  gridAutoRows: [{ type: 'keyword', value: 'auto' }],
+  gridAutoFlow: 'row',
+  gridColumnStart: { type: 'keyword', value: 'auto' },
+  gridColumnEnd: { type: 'keyword', value: 'auto' },
+  gridRowStart: { type: 'keyword', value: 'auto' },
+  gridRowEnd: { type: 'keyword', value: 'auto' },
+  justifyItems: 'stretch',
+  gap: { type: 'keyword', value: 'normal' },
+  rowGap: { type: 'keyword', value: 'normal' },
+  columnGap: { type: 'keyword', value: 'normal' },
+};
+

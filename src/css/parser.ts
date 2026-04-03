@@ -27,7 +27,7 @@ const KEYWORDS = new Set([
   'currentcolor',
   'row', 'row-reverse', 'column', 'column-reverse',
   'flex-start', 'flex-end', 'space-between', 'space-around', 'space-evenly',
-  'stretch',
+  'stretch', 'start', 'end', 'dense',
 ]);
 
 /**
@@ -64,11 +64,12 @@ export function parseCSSValue(input: string): CSSValue {
   }
 
   // 数值 + 单位
-  const match = trimmed.match(/^([+-]?\d*\.?\d+)(px|em|rem|%)$/);
+  const match = trimmed.match(/^([+-]?\d*\.?\d+)(px|em|rem|fr|%)$/);
   if (match) {
     const value = parseFloat(match[1]);
     const unit = match[2];
     if (unit === 'px') return { type: 'length', value, unit: 'px' } as CSSLength;
+    if (unit === 'fr') return { type: 'fr', value } as any; // Using any for now to avoid strictly typed CSSFlexibleLength export issues if any
     if (unit === '%') return { type: 'percentage', value } as CSSPercentage;
     if (unit === 'em') return { type: 'em', value } as CSSRelativeLength;
     if (unit === 'rem') return { type: 'rem', value } as CSSRelativeLength;
