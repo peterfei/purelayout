@@ -104,9 +104,26 @@ console.log(result.root.children[1].contentRect);
 | `justify-content` | `flex-start`, `flex-end`, `center`, `space-between`, `space-around`, `space-evenly` |
 | `flex-grow` / `flex-shrink` / `flex-basis` | 完整支持 |
 
+### 定位
+
+| 属性 | 支持的值 |
+|------|---------|
+| `position` | `static`, `absolute`, `relative`, `fixed` |
+| `top` / `right` / `bottom` / `left` | `px`, `%`, `em`, `rem`, `auto` |
+
 ## 演示
 
 运行 `npm run demo` 查看所有演示效果。
+
+### 1:1 高保真还原挑战 (v0.3.1 亮点)
+
+展示如何将复杂的 CSS 布局（包含绝对定位、多级嵌套、自定义边框）完美还原。
+
+**H5 预览 (1:1 还原)** | **PPT 导出结果 (高保真)**
+:---:|:---:
+<img src="demos/challenges-fidelity-h5.png" alt="H5 预览" width="400" /> | <img src="demos/challenges-fidelity.png" alt="PPT 导出" width="400" />
+
+> 运行 `node demos/demo-challenges-fidelity.mjs` 亲自体验。
 
 ### 数据可视化
 
@@ -127,23 +144,15 @@ console.log(result.root.children[1].contentRect);
 | Box Model | 5 | 5 | 100% |
 | Flex 布局 | 25 | 25 | 100% |
 | Grid 布局 | 4 | 4 | 100% |
-| **合计** | **52** | **52** | **100%** |
+| **定位 (New)** | **2** | **2** | **100%** |
+| **合计** | **54** | **54** | **100%** |
 
 ## 路线图
 
-### Phase 3 — Grid (进行中)
+### Phase 4 — 定位与浮动 (进行中)
 
-- [x] grid-template-rows / grid-template-columns
-- [x] fr 弹性单位
-- [x] repeat() 函数解析
-- [x] grid-column / grid-row 显式定位 (Span)
-- [ ] grid-area 命名区域
-- [ ] auto-fill / auto-fit 弹性平铺
-- [x] 100% 浏览器保真度 (基础)
-
-### Phase 4 — 定位与浮动
-
-- [ ] position: absolute / relative / fixed / sticky
+- [x] position: absolute / relative / fixed
+- [x] top / right / bottom / left 偏移计算
 - [ ] float / clear
 - [ ] z-index
 - [ ] Table 布局
@@ -152,6 +161,7 @@ console.log(result.root.children[1].contentRect);
 
 - [x] 差分测试框架 + 保真度监控
 - [x] Pretext 适配器 (精确文本测量集成)
+- [x] **PPT 导出适配器 (支持图像 & 高保真排版)**
 - [ ] `@purelayout/pdf` — PDF 渲染适配器
 - [ ] `@purelayout/canvas` — Canvas 渲染适配器
 - [ ] `parseStyleNode(html)` — HTML 字符串快速解析
