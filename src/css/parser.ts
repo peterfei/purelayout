@@ -18,6 +18,7 @@ import type {
 const KEYWORDS = new Set([
   'auto', 'normal', 'none', 'inherit', 'initial', 'unset',
   'block', 'inline', 'inline-block', 'flex', 'grid',
+  'absolute', 'relative', 'fixed', 'static',
   'visible', 'hidden', 'scroll',
   'content-box', 'border-box',
   'left', 'right', 'center', 'justify',

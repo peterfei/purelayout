@@ -1,5 +1,5 @@
 /**
- * Block Formatting Context 布局
+ * Block Formatting Context 布局 (修正 Ghosting 与相对坐标逻辑)
  */
 import type { LayoutNode, LayoutOptions } from '../../types/layout.js';
 import type { ContainingBlock } from '../containing-block.js';
@@ -20,6 +20,9 @@ export function layoutBlockFormattingContext(
   containingBlock: ContainingBlock,
   options: LayoutOptions,
 ): void {
+  // 关键：清空旧的 LineBoxes，防止预布局/二次布局产生的幽灵数据
+  node.lineBoxes = [];
+
   // 1. 解析容器自身盒模型 (基于 parent containing block)
   const { width, paddingLeft, paddingRight, borderLeft, borderRight } =
     resolveWidth(node.computedStyle, containingBlock.width);
@@ -76,6 +79,9 @@ export function layoutBlockFormattingContext(
 
   for (const child of node.children) {
     if (child.type === 'text' && child.textContent?.trim() === '' && !preserveWhitespace) continue;
+    
+    // 关键修复：跳过绝对定位元素，它们脱离文档流，不应参与 BFC 的流式排版
+    if (child.computedStyle.boxModel.position === 'absolute') continue;
 
     if (isBlockLevel(child)) {
       // 处理之前的 inline 内容
@@ -109,7 +115,6 @@ export function layoutBlockFormattingContext(
       child.contentRect.y = currentY + effectiveMarginTop + child.boxModel.borderTop + child.boxModel.paddingTop;
 
       if (parentCollapsesTop) {
-        // 更新父节点的折叠 margin-top
         node.collapsedMarginTop = collapseMargins(node.collapsedMarginTop!, collapsedMargin);
       }
 
@@ -120,7 +125,6 @@ export function layoutBlockFormattingContext(
 
       if (isSelfCollapsing) {
         pendingMarginTop = collapseMargins(collapsedMargin, child.boxModel.marginBottom);
-        // 如果是自折叠且还在开头，继续影响父节点的 collapsedMarginTop
         if (parentCollapsesTop) {
           node.collapsedMarginTop = collapseMargins(node.collapsedMarginTop!, pendingMarginTop);
         }
@@ -149,7 +153,6 @@ export function layoutBlockFormattingContext(
   // 处理 margin-bottom 折叠
   const parentCollapsesBottom = paddingTop === 0 && borderTop === 0 && height === 0 && paddingBottom === 0 && borderBottom === 0;
   if (parentCollapsesBottom) {
-    // 全折叠（空容器）：top 和 bottom 都通了
     node.collapsedMarginTop = collapseMargins(node.collapsedMarginTop!, pendingMarginTop);
     node.collapsedMarginBottom = node.collapsedMarginTop;
   } else if (paddingBottom === 0 && borderBottom === 0) {

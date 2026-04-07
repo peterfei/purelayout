@@ -33,10 +33,6 @@ interface PretextLayoutWithLinesResult {
   lines: PretextLayoutLine[];
 }
 
-interface PretextPreparedWithSegments {
-  _tag: string;
-}
-
 interface PretextModule {
   prepare: (
     text: string,
@@ -47,14 +43,14 @@ interface PretextModule {
     text: string,
     font: string,
     options?: { whiteSpace?: string },
-  ) => PretextPreparedWithSegments;
+  ) => { _tag: string }; // Inlined PretextPreparedWithSegments
   layout: (
     prepared: unknown,
     maxWidth: number,
     lineHeight: number,
   ) => { height: number; lineCount: number };
   layoutWithLines: (
-    prepared: PretextPreparedWithSegments,
+    prepared: { _tag: string }, // Inlined PretextPreparedWithSegments
     maxWidth: number,
     lineHeight: number,
   ) => PretextLayoutWithLinesResult;
@@ -145,27 +141,43 @@ export class PretextMeasurer implements TextMeasurer {
   // ===== TextMeasurer 接口 =====
 
   measureTextWidth(text: string, style: TextStyle): number {
+    console.log(`[MeasureText Debug] measureTextWidth: Text="${text}", Style=${JSON.stringify(style)}`);
     if (text.length === 0) return 0;
-    if (this.useFallback) return this.fallbackMeasure(text, style);
+    if (this.useFallback) {
+      const fallbackWidth = this.fallbackMeasure(text, style);
+      console.log(`[MeasureText Debug] Fallback measureTextWidth for "${text}": ${fallbackWidth}`);
+      return fallbackWidth;
+    }
 
     const font = this.buildFontString(style);
     const cacheKey = `${text}\x00${font}\x00${style.letterSpacing}`;
     const cached = this.widthCache.get(cacheKey);
-    if (cached !== undefined) return cached;
+    if (cached !== undefined) {
+      console.log(`[MeasureText Debug] Cached measureTextWidth for "${text}": ${cached}`);
+      return cached;
+    }
 
     this.ctx!.font = font;
     const width = this.ctx!.measureText(text).width + style.letterSpacing * text.length;
-
+    console.log(`[MeasureText Debug] Canvas measureTextWidth for "${text}": ${width}`);
     this.widthCache.set(cacheKey, width);
     return width;
   }
 
   getFontMetrics(style: TextStyle): FontMetrics {
-    if (this.useFallback) return estimateFontMetrics(style);
+    console.log(`[MeasureText Debug] getFontMetrics: Style=${JSON.stringify(style)}`);
+    if (this.useFallback) {
+      const fallbackMetrics = estimateFontMetrics(style);
+      console.log(`[MeasureText Debug] Fallback getFontMetrics: ${JSON.stringify(fallbackMetrics)}`);
+      return fallbackMetrics;
+    }
 
     const font = this.buildFontString(style);
     const cached = this.metricsCache.get(font);
-    if (cached) return cached;
+    if (cached) {
+      console.log(`[MeasureText Debug] Cached getFontMetrics: ${JSON.stringify(cached)}`);
+      return cached;
+    }
 
     this.ctx!.font = font;
     const metrics = this.ctx!.measureText('Mxgyp');
@@ -181,7 +193,7 @@ export class PretextMeasurer implements TextMeasurer {
       emHeight,
       gap: Math.max(0, (style.fontSize * 1.2 - ascent - descent) / 2),
     };
-
+    console.log(`[MeasureText Debug] Canvas getFontMetrics: ${JSON.stringify(result)}`);
     this.metricsCache.set(font, result);
     return result;
   }

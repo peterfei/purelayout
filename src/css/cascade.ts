@@ -10,6 +10,7 @@ import { getUADefaults } from './initial.js';
 import { resolveInheritedStyle } from './inherit.js';
 import { INHERITABLE_PROPERTIES } from './properties.js';
 import { parseTrackList, parseSlashValues, parseCSSValue } from './parser.js';
+import { expandFlexShorthand } from './shorthand.js';
 
 /**
  * 解析相对值为绝对值（em/rem）
@@ -47,7 +48,7 @@ export function computeStyle(
     : rootFontSize;
 
   // 3. 深拷贝用户样式以避免修改原始数据
-  const userStyle = { ...node.style } as Record<string, unknown>;
+  const userStyle: Record<string, unknown> = { ...node.style };
 
   // 3.5 展开 shorthand 属性
   expandShorthands(userStyle);
@@ -60,7 +61,8 @@ export function computeStyle(
   const boxModel: Required<BoxModelStyle> = {
     ...INITIAL_BOX_MODEL,
     ...uaDefaults,
-    ...userStyle,
+    ...(userStyle as BoxModelStyle), // 确保 userStyle 中的 boxModel 相关属性被合并
+    // boxSizing now comes from INITIAL_BOX_MODEL, uaDefaults or explicit userStyle.
   } as unknown as Required<BoxModelStyle>;
 
   // 6. 合并可继承属性：用户值 > 父元素继承值 > UA 默认值 > 初始值
@@ -161,6 +163,13 @@ function expandShorthands(style: Record<string, unknown>): void {
     if (!('marginBottom' in style)) style.marginBottom = margin;
     if (!('marginLeft' in style)) style.marginLeft = margin;
     delete style.margin;
+  }
+
+  // flex: 1 → flexGrow: 1, flexShrink: 1, flexBasis: 0px
+  if ('flex' in style) {
+    const flexExpanded = expandFlexShorthand(style.flex as any);
+    Object.assign(style, flexExpanded);
+    delete style.flex;
   }
 }
 

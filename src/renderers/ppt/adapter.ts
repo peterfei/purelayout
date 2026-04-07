@@ -5,6 +5,15 @@ import type { LayoutTree, LayoutNode } from '../../types/layout.js';
 import type { PPTSlide, PPTSlideObject } from './types.js';
 import { resolveLength } from '../../css/cascade.js';
 
+// 预定义的图标映射，假设图标文件存在于某个路径下
+const ICONS_MAP: Record<string, string> = {
+  'icon-html': '/path/to/html_icon.png', // 占位符路径，实际使用时需要替换
+  'icon-json': '/path/to/json_icon.png',
+  'icon-ssr': '/path/to/ssr_icon.png',
+  'icon-pdf': '/path/to/pdf_icon.png',
+  'icon-canvas': '/path/to/canvas_icon.png',
+};
+
 export class PPTAdapter {
   private dpi = 96;
 
@@ -76,6 +85,22 @@ export class PPTAdapter {
             });
           }
         });
+      }
+
+      // 3. 处理图像 (根据类名识别)
+      // 遍历 ICONS_MAP，检查当前 node 的 className 是否包含任意一个 icon 的类名
+      for (const iconClass in ICONS_MAP) {
+        if (node.className && node.className.includes(iconClass)) {
+          objects.push({
+            type: 'image',
+            x: this.pxToInches(contentRect.x),
+            y: this.pxToInches(contentRect.y),
+            w: this.pxToInches(contentRect.width),
+            h: this.pxToInches(contentRect.height),
+            src: ICONS_MAP[iconClass],
+          });
+          break; // 找到一个匹配就退出
+        }
       }
 
       // 递归子节点

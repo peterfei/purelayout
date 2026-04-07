@@ -117,6 +117,11 @@ export interface BoxModelStyle {
   borderLeftWidth: CSSDimensionValue;
   verticalAlign: VerticalAlignValue;
   backgroundColor: CSSColor;
+  position: 'static' | 'relative' | 'absolute' | 'fixed';
+  top: CSSDimensionValue;
+  right: CSSDimensionValue;
+  bottom: CSSDimensionValue;
+  left: CSSDimensionValue;
 }
 
 // ===== 输入样式节点 =====

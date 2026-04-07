@@ -8,7 +8,7 @@ import { px } from '../utils/format.js';
 export const INITIAL_BOX_MODEL: Required<BoxModelStyle> = {
   display: 'inline',
   overflow: 'visible',
-  boxSizing: 'content-box',
+  boxSizing: 'border-box', // Changed from 'content-box' to 'border-box'
   width: { type: 'keyword', value: 'auto' },
   height: { type: 'keyword', value: 'auto' },
   minWidth: px(0),
@@ -29,6 +29,11 @@ export const INITIAL_BOX_MODEL: Required<BoxModelStyle> = {
   borderLeftWidth: px(0),
   verticalAlign: 'baseline',
   backgroundColor: { type: 'color', value: 'transparent' },
+  position: 'static',
+  top: { type: 'keyword', value: 'auto' },
+  right: { type: 'keyword', value: 'auto' },
+  bottom: { type: 'keyword', value: 'auto' },
+  left: { type: 'keyword', value: 'auto' },
 };
 
 export const INITIAL_INHERITED: Required<InheritedStyle> = {

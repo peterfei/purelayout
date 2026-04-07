@@ -1,5 +1,5 @@
 /**
- * Inline Formatting Context 布局
+ * Inline Formatting Context 布局 (支持对齐与精准相对坐标)
  */
 import type { LayoutNode, LayoutOptions, LineBox } from '../../types/layout.js';
 import type { ComputedStyle } from '../../types/style.js';
@@ -33,8 +33,8 @@ export function layoutInlineRun(
       const style = extractTextStyle(node.computedStyle);
       const processedText = processWhitespace(node.textContent, whiteSpace);
       if (processedText.length > 0) {
-        if (isPreMode && processedText.includes('\n')) {
-          const lines = processedText.split('\n');
+        if (isPreMode && processedText.includes('\\n')) {
+          const lines = processedText.split('\\n');
           for (let li = 0; li < lines.length; li++) {
             if (li > 0) fragments.push({ text: '', style, sourceIndex: -1 });
             if (lines[li].length > 0) fragments.push({ text: lines[li], style, sourceIndex: node.sourceIndex });
@@ -56,18 +56,29 @@ export function layoutInlineRun(
 
   if (fragments.length === 0) return { totalHeight: 0, lineBoxes: [] };
 
-  // 构建行框 (lb.y 此时是相对于 0 的)
+  // 1. 构建行框
   const lineBoxes = buildLineBoxes(fragments, availableWidth, options, whiteSpace);
 
+  // 2. 处理文本对齐 (TextAlign)
+  const textAlign = nodes[0]?.computedStyle?.inherited.textAlign || 'left';
+  
   let totalHeight = 0;
   for (const lb of lineBoxes) {
-    lb.y = startY + totalHeight; // 相对当前 BFC 的 Y
+    lb.y = startY + totalHeight; 
+    
+    // 计算对齐偏移
+    let alignOffset = 0;
+    if (textAlign === 'center') alignOffset = (availableWidth - lb.width) / 2;
+    else if (textAlign === 'right') alignOffset = availableWidth - lb.width;
+    alignOffset = Math.max(0, alignOffset);
+
     for (const frag of lb.fragments) {
-      frag.x += startX; // 相对当前 BFC 的 X
+      frag.x += startX + alignOffset; 
     }
     totalHeight += lb.height;
   }
 
+  // 3. 计算 inline 节点自身的 contentRect
   let maxWidth = 0;
   for (const lb of lineBoxes) maxWidth = Math.max(maxWidth, lb.width);
 

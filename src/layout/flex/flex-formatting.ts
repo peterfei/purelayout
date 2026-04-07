@@ -1,5 +1,5 @@
 /**
- * Flex Formatting Context (FFC) 布局
+ * Flex Formatting Context (FFC) 布局 - 最终精度修复版本
  */
 import type { LayoutNode, LayoutOptions } from '../../types/layout.js';
 import type { ContainingBlock } from '../containing-block.js';
@@ -13,15 +13,16 @@ import { resolveFlexBaseSizes } from './flex-size.js';
 import { resolveFlexibleLengths } from './flex-algorithm.js';
 import { collectFlexLines } from './flex-wrap.js';
 import { layoutBlockFormattingContext } from '../block/block-formatting.js';
+import { layoutGridFormattingContext } from '../grid/grid-formatting.js';
 
-/**
- * 布局一个 Flex Formatting Context
- */
 export function layoutFlexFormattingContext(
   node: LayoutNode,
   containingBlock: ContainingBlock,
   options: LayoutOptions,
 ): void {
+  console.log(`[FFC Debug] Layouting ${node.tagName} (ID: ${node.testId || 'N/A'})`);
+  console.log(`  - Parent CB: W=${containingBlock.width}, H=${containingBlock.height}`);
+
   const style = node.computedStyle;
   const flex = style.flex;
 
@@ -55,7 +56,6 @@ export function layoutFlexFormattingContext(
   node.boxModel.borderLeft = borderLeft;
   node.contentRect.width = width;
 
-  // 2. 确定轴方向
   const isRow = flex.flexDirection === 'row' || flex.flexDirection === 'row-reverse';
   const isReverse = flex.flexDirection === 'row-reverse' || flex.flexDirection === 'column-reverse';
   const isWrap = flex.flexWrap === 'wrap' || flex.flexWrap === 'wrap-reverse';
@@ -65,346 +65,199 @@ export function layoutFlexFormattingContext(
   const hasDefiniteHeight = heightValue.type === 'length';
   const definiteHeight = hasDefiniteHeight ? heightValue.value : 0;
 
-  const containerMainSize = isRow ? width : (hasDefiniteHeight ? definiteHeight : Infinity);
-  const containerCrossSize = isRow ? (hasDefiniteHeight ? definiteHeight : 0) : width;
+  // 关键修正：容器主轴尺寸，如果高度是 auto (Column)，则应使用 containingBlock.height
+  const containerMainSize = isRow 
+    ? width 
+    : (hasDefiniteHeight ? definiteHeight : (containingBlock.height || 0)); // Column 模式下，auto height 依赖 containingBlock.height
+  
+  // 关键修正：容器交叉轴尺寸
+  const containerCrossSize = isRow 
+    ? (hasDefiniteHeight ? definiteHeight : (containingBlock.height || 0)) // Row 模式下，auto cross size 依赖 containingBlock.height
+    : width; // Column 模式下，交叉轴是 width
+
+  console.log(`  - FFC Computed Container Sizes: Main=${containerMainSize}, Cross=${containerCrossSize}`);
   const gapMain = resolveGap(flex, isRow, true);
   const gapCross = resolveGap(flex, isRow, false);
-
-  // 3. 构建 context
-  const contentOriginX = 0;
-  const contentOriginY = 0;
 
   const ctx: FlexContext = {
     node, isRow, isReverse, isWrap, isWrapReverse,
     containerMainSize, containerCrossSize,
     gapMain, gapCross, lines: [],
-    contentOriginX, contentOriginY,
+    contentOriginX: 0, contentOriginY: 0,
   };
 
-  // 4. 收集 flex items
   const items = collectFlexItems(node, ctx);
   sortFlexItemsByOrder(items);
 
-  // 5. 计算 flex base sizes (初步)
   resolveFlexBaseSizes(items, ctx, options);
 
-  // 6. 拆行并布局 (初步)
-  let lines = buildLines(items, containerMainSize, gapMain, isWrap);
+  let lines = isWrap ? collectFlexLines(items, containerMainSize, gapMain) : [{ items, crossSize: 0, baseline: 0 }];
 
-  // 7. 对齐与弹性计算
   performFlexLayoutPass(lines, ctx, flex);
 
-  // 8. 递归布局子元素（关键：在此步骤更新 mainSize 和 crossSize）
   for (const item of items) {
     layoutFlexItemContent(item, ctx, options);
   }
 
-  // 9. 重新计算每行 crossSize (内容撑开后可能变化)
   if (!isWrap || flex.alignContent !== 'stretch') {
     for (const line of lines) {
-      let maxCrossSize = 0;
+      let maxCS = 0;
       for (const item of line.items) {
         const outer = item.crossSize + item.crossPaddingBorder + item.crossMarginStart + item.crossMarginEnd;
-        if (outer > maxCrossSize) maxCrossSize = outer;
+        if (outer > maxCS) maxCS = outer;
       }
-      line.crossSize = maxCrossSize;
+      line.crossSize = maxCS;
     }
   }
 
-  // 10. 计算容器高度
-  let contentHeightForResolver: number;
+  let contentHeight: number;
   if (isRow) {
-    let totalCrossSize = 0;
-    for (const line of lines) totalCrossSize += line.crossSize;
-    totalCrossSize += Math.max(0, lines.length - 1) * gapCross;
-    contentHeightForResolver = totalCrossSize;
+    contentHeight = lines.reduce((s, l) => s + l.crossSize, 0) + Math.max(0, lines.length - 1) * gapCross;
   } else {
-    let totalMainSize = 0;
-    for (const item of items) totalMainSize += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd;
-    totalMainSize += Math.max(0, items.length - 1) * gapMain;
-    contentHeightForResolver = totalMainSize;
+    contentHeight = items.reduce((s, i) => s + i.mainSize + i.mainPaddingBorder + i.mainMarginStart + i.mainMarginEnd, 0) + Math.max(0, items.length - 1) * gapMain;
   }
 
-  const { height } = resolveHeight(style, containingBlock.height, contentHeightForResolver);
+  const { height } = resolveHeight(style, containingBlock.height, contentHeight);
   node.contentRect.height = height;
 
-  // 11. 最终坐标同步 (再次运行以响应高度变化)
-  if (!isRow) {
-     // 对于 column 布局，需要重新分配空间（如果高度变了）
-     performFlexLayoutPass(lines, ctx, flex);
-  }
+  ctx.containerCrossSize = isRow ? height : width;
+  performFlexLayoutPass(lines, ctx, flex);
   applyAbsolutePositions(ctx);
 
-  const orderedChildren = items.map(item => item.node);
-  node.children = orderedChildren;
-}
-
-function buildLines(items: FlexItemState[], containerMainSize: number, gapMain: number, isWrap: boolean): FlexLine[] {
-  if (isWrap) {
-    return collectFlexLines(items, containerMainSize, gapMain);
-  } else {
-    return [{ items, crossSize: 0, baseline: 0 }];
-  }
+  node.children = items.map(item => item.node);
 }
 
 function performFlexLayoutPass(lines: FlexLine[], ctx: FlexContext, flex: any) {
-  const isSingleLine = lines.length === 1;
   for (const line of lines) {
     resolveFlexibleLengths(line.items, ctx.containerMainSize, ctx.gapMain);
     applyJustifyContent(line, ctx.containerMainSize, ctx.gapMain, flex.justifyContent);
-
-    if (isSingleLine && ctx.containerCrossSize > 0) {
-      resolveCrossAxisForLine(line, flex.alignItems, ctx.isRow, ctx.containerCrossSize, true);
-    } else {
-      resolveCrossAxisForLine(line, flex.alignItems, ctx.isRow, ctx.containerCrossSize, false);
-    }
+    resolveCrossAxisForLine(line, flex.alignItems, ctx.isRow, ctx.containerCrossSize, lines.length === 1);
   }
   applyAlignContent(lines, ctx, flex.alignContent, flex.alignItems);
-  ctx.lines = lines;
 }
 
 function resolveGap(flex: any, isRow: boolean, isMainAxis: boolean): number {
-  const gapValue = isMainAxis
-    ? (isRow ? flex.columnGap : flex.rowGap)
-    : (isRow ? flex.rowGap : flex.columnGap);
-  if (!gapValue) return 0;
-  if (gapValue.type === 'keyword' && gapValue.value === 'normal') return 0;
-  return resolveLength(gapValue);
+  const g = isMainAxis ? (isRow ? flex.columnGap : flex.rowGap) : (isRow ? flex.rowGap : flex.columnGap);
+  return (g && g.type === 'length') ? g.value : 0;
 }
 
 function applyJustifyContent(line: FlexLine, containerMainSize: number, gapMain: number, justifyContent: string): void {
   const items = line.items;
   if (items.length === 0) return;
-  const totalGap = Math.max(0, items.length - 1) * gapMain;
-  let itemsSize = 0;
-  for (const item of items) itemsSize += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd;
-  const freeSpace = containerMainSize - itemsSize - totalGap;
+  const totalGap = (items.length - 1) * gapMain;
+  let itemsUsedSize = 0;
+  for (const item of items) itemsUsedSize += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd;
+  const freeSpace = (containerMainSize === Infinity) ? 0 : Math.max(0, containerMainSize - itemsUsedSize - totalGap);
 
-  switch (justifyContent) {
-    case 'flex-start': positionFromStart(items, gapMain, 0); break;
-    case 'flex-end': positionFromStart(items, gapMain, freeSpace); break;
-    case 'center': positionFromStart(items, gapMain, freeSpace / 2); break;
-    case 'space-between': positionSpaceBetween(items, gapMain, freeSpace); break;
-    case 'space-around': { const sp = items.length > 0 ? freeSpace / items.length : 0; positionWithSpacing(items, sp, sp / 2); break; }
-    case 'space-evenly': { const sp = items.length > 0 ? freeSpace / (items.length + 1) : 0; positionWithSpacing(items, sp, sp); break; }
-  }
-}
-
-function positionFromStart(items: FlexItemState[], gap: number, offset: number): void {
-  let pos = offset;
-  for (const item of items) {
-    item.mainPos = pos + item.mainMarginStart;
-    pos += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd + gap;
-  }
-}
-
-function positionSpaceBetween(items: FlexItemState[], gap: number, freeSpace: number): void {
-  if (items.length <= 1) { positionFromStart(items, gap, 0); return; }
-  const spacing = freeSpace / (items.length - 1) + gap;
   let pos = 0;
-  for (const item of items) {
-    item.mainPos = pos + item.mainMarginStart;
-    pos += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd + spacing;
-  }
-}
+  let sp = gapMain;
 
-function positionWithSpacing(items: FlexItemState[], spacing: number, edge: number): void {
-  let pos = edge;
+  if (justifyContent === 'flex-end') pos = freeSpace;
+  else if (justifyContent === 'center') pos = freeSpace / 2;
+  else if (justifyContent === 'space-between') sp = items.length > 1 ? (freeSpace / (items.length - 1) + gapMain) : gapMain;
+  else if (justifyContent === 'space-around') { const s = freeSpace / items.length; pos = s / 2; sp = s + gapMain; }
+  else if (justifyContent === 'space-evenly') { const s = freeSpace / (items.length + 1); pos = s; sp = s + gapMain; }
+
   for (const item of items) {
     item.mainPos = pos + item.mainMarginStart;
-    pos += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd + spacing;
+    pos += item.mainSize + item.mainPaddingBorder + item.mainMarginStart + item.mainMarginEnd + sp;
   }
 }
 
 function resolveCrossAxisForLine(line: FlexLine, alignItems: AlignItemsValue, isRow: boolean, containerCrossSize: number, isSingleLine: boolean): void {
-  let maxCrossSize = 0;
+  let maxCS = 0;
   for (const item of line.items) {
     const cs = getItemDefiniteCrossSize(item, isRow, containerCrossSize);
-    item.crossSize = cs;
-    const outer = cs + item.crossPaddingBorder + item.crossMarginStart + item.crossMarginEnd;
-    if (outer > maxCrossSize) maxCrossSize = outer;
-  }
-  line.crossSize = maxCrossSize;
-  if (isSingleLine && containerCrossSize > 0 && containerCrossSize > maxCrossSize) {
-    maxCrossSize = containerCrossSize;
-    line.crossSize = maxCrossSize;
-  }
-  for (const item of line.items) {
-    const align = getEffectiveAlign(item, alignItems);
+    item.crossSize = Math.max(item.crossSize, cs);
     const outer = item.crossSize + item.crossPaddingBorder + item.crossMarginStart + item.crossMarginEnd;
-    const extra = maxCrossSize - outer;
-    switch (align) {
-      case 'flex-start': item.crossPos = item.crossMarginStart; break;
-      case 'flex-end': item.crossPos = item.crossMarginStart + extra; break;
-      case 'center': item.crossPos = item.crossMarginStart + extra / 2; break;
-      case 'stretch': {
-        item.crossPos = item.crossMarginStart;
-        if (hasDefiniteCrossSize(item, isRow)) break;
-        const available = maxCrossSize - item.crossPaddingBorder - item.crossMarginStart - item.crossMarginEnd;
-        if (available > item.crossSize) item.crossSize = available;
-        break;
+    maxCS = Math.max(maxCS, outer);
+  }
+  line.crossSize = maxCS;
+  if (isSingleLine && containerCrossSize > maxCS) maxCS = containerCrossSize;
+
+  for (const item of line.items) {
+    const align = item.node.computedStyle.flex.alignSelf !== 'auto' ? item.node.computedStyle.flex.alignSelf : alignItems;
+    const outer = item.crossSize + item.crossPaddingBorder + item.crossMarginStart + item.crossMarginEnd;
+    const extra = maxCS - outer;
+    
+    item.crossPos = item.crossMarginStart;
+    if (align === 'flex-end') item.crossPos += extra;
+    else if (align === 'center') item.crossPos += extra / 2;
+    else if (align === 'stretch') {
+      if (item.node.computedStyle.boxModel[isRow ? 'height' : 'width'].type === 'keyword') {
+        item.crossSize = Math.max(item.crossSize, maxCS - item.crossPaddingBorder - item.crossMarginStart - item.crossMarginEnd);
       }
-      case 'baseline': item.crossPos = item.crossMarginStart; break;
     }
   }
-}
-
-function getEffectiveAlign(item: FlexItemState, containerAlign: AlignItemsValue): AlignItemsValue {
-  const self = item.node.computedStyle.flex.alignSelf;
-  return self !== 'auto' ? self : containerAlign;
 }
 
 function getItemDefiniteCrossSize(item: FlexItemState, isRow: boolean, containerCrossSize: number): number {
   const bm = item.node.computedStyle.boxModel;
-  const sizeValue = isRow ? bm.height : bm.width;
-  let value = 0;
-  if (sizeValue.type === 'length') value = sizeValue.value;
-  else if (sizeValue.type === 'percentage') value = (sizeValue.value / 100) * containerCrossSize;
-  else if (sizeValue.type === 'keyword' && sizeValue.value === 'auto' && containerCrossSize > 0) {
-    // 处理 stretch 默认行为：如果交叉轴尺寸固定，auto 应当填满
-    value = containerCrossSize - item.crossPaddingBorder - item.crossMarginStart - item.crossMarginEnd;
+  const val = isRow ? bm.height : bm.width;
+  if (val.type === 'length') return val.value;
+  if (val.type === 'percentage') return (val.value / 100) * containerCrossSize;
+  
+  // 关键修正：如果交叉轴是 auto 且对齐方式是 stretch，继承容器可用宽度
+  if (containerCrossSize > 0) {
+     const align = item.node.computedStyle.flex.alignSelf !== 'auto' ? item.node.computedStyle.flex.alignSelf : 'stretch';
+     if (align === 'stretch') return Math.max(0, containerCrossSize - item.crossPaddingBorder - item.crossMarginStart - item.crossMarginEnd);
   }
-  else return 0;
-  if (bm.boxSizing === 'border-box') value = Math.max(0, value - item.crossPaddingBorder);
-  return Math.max(0, value);
-}
-
-function hasDefiniteCrossSize(item: FlexItemState, isRow: boolean): boolean {
-  const bm = item.node.computedStyle.boxModel;
-  const sizeValue = isRow ? bm.height : bm.width;
-  return sizeValue.type === 'length' || sizeValue.type === 'percentage';
+  return 0;
 }
 
 function applyAlignContent(lines: FlexLine[], ctx: FlexContext, alignContent: string, alignItems: AlignItemsValue): void {
-  if (lines.length <= 1) return;
-  let totalCrossSize = 0;
-  for (const line of lines) totalCrossSize += line.crossSize;
-  totalCrossSize += Math.max(0, lines.length - 1) * ctx.gapCross;
-  const containerCrossSize = ctx.containerCrossSize;
-  const freeSpace = containerCrossSize - totalCrossSize;
-
-  switch (alignContent) {
-    case 'flex-start': break;
-    case 'flex-end': { const offset = Math.max(0, freeSpace); for (const line of lines) for (const item of line.items) item.crossPos += offset; break; }
-    case 'center': { const offset = Math.max(0, freeSpace) / 2; for (const line of lines) for (const item of line.items) item.crossPos += offset; break; }
-    case 'space-between':
-      if (freeSpace > 0 && lines.length > 1) {
-        const spacing = freeSpace / (lines.length - 1);
-        let offset = 0;
-        for (const line of lines) { for (const item of line.items) item.crossPos += offset; offset += line.crossSize + ctx.gapCross + spacing; }
-      }
-      break;
-    case 'space-around':
-      if (freeSpace > 0 && lines.length > 0) {
-        const spacing = freeSpace / lines.length;
-        let offset = spacing / 2;
-        for (const line of lines) { for (const item of line.items) item.crossPos += offset; offset += line.crossSize + ctx.gapCross + spacing; }
-      }
-      break;
-    case 'stretch':
-      if (freeSpace > 0 && lines.length > 0) {
-        const extraPerLine = freeSpace / lines.length;
-        for (const line of lines) {
-          line.crossSize += extraPerLine;
-          for (const item of line.items) {
-            const align = getEffectiveAlign(item, alignItems);
-            const outer = item.crossSize + item.crossPaddingBorder + item.crossMarginStart + item.crossMarginEnd;
-            const extra = line.crossSize - outer;
-            if (align === 'stretch' && !hasDefiniteCrossSize(item, ctx.isRow)) {
-              item.crossSize = line.crossSize - item.crossPaddingBorder - item.crossMarginStart - item.crossMarginEnd;
-              item.crossPos = item.crossMarginStart;
-            } else {
-              switch (align) {
-                case 'flex-start': item.crossPos = item.crossMarginStart; break;
-                case 'flex-end': item.crossPos = item.crossMarginStart + extra; break;
-                case 'center': item.crossPos = item.crossMarginStart + extra / 2; break;
-                default: item.crossPos = item.crossMarginStart;
-              }
-            }
-          }
-        }
-      }
-      break;
-  }
+  if (lines.length <= 1 || ctx.containerCrossSize <= 0 || ctx.containerCrossSize === Infinity) return;
+  const total = lines.reduce((s, l) => s + l.crossSize, 0) + (lines.length - 1) * ctx.gapCross;
+  const free = Math.max(0, ctx.containerCrossSize - total);
+  let offset = 0;
+  if (alignContent === 'flex-end') offset = free;
+  else if (alignContent === 'center') offset = free / 2;
+  for (const line of lines) for (const item of line.items) item.crossPos += offset;
 }
 
 function layoutFlexItemContent(item: FlexItemState, ctx: FlexContext, options: LayoutOptions): void {
   const node = item.node;
-  if (node.children.length === 0) return;
-  const hasDefiniteCrossSize = (() => {
-    const bm = item.node.computedStyle.boxModel;
-    const sizeValue = ctx.isRow ? bm.height : bm.width;
-    return sizeValue.type === 'length' || sizeValue.type === 'percentage';
-  })();
-  
-  // 确定子元素的包含块尺寸（物理尺寸）
-  const widthForChild = ctx.isRow ? item.mainSize : item.crossSize;
-  const heightForChild = ctx.isRow ? item.crossSize : item.mainSize;
 
-  const childCB = { 
-    width: widthForChild, 
-    height: hasDefiniteCrossSize ? heightForChild : undefined 
-  };
+  // 关键修正：物理宽度 = Row 模式下的 mainSize 或 Column 模式下的 crossSize (不应为 0)
+  const widthForChild = ctx.isRow ? item.mainSize : (item.crossSize || ctx.containerCrossSize);
+  const heightForChild = ctx.isRow ? (item.crossSize || ctx.containerCrossSize) : item.mainSize;
 
+  const childCB: ContainingBlock = { width: widthForChild, height: heightForChild || undefined };
   if (node.type === 'flex') layoutFlexFormattingContext(node, childCB, options);
   else if (node.type === 'grid') layoutGridFormattingContext(node, childCB, options);
   else layoutBlockFormattingContext(node, childCB, options);
 
-  // 重要：回填实际尺寸！
-  if (!hasDefiniteCrossSize) {
-    if (ctx.isRow) {
-       // Row 布局，高度（crossSize）自适应内容
-       if (node.contentRect.height > 0) item.crossSize = node.contentRect.height;
-    } else {
-       // Column 布局，高度（mainSize）自适应内容
-       if (node.contentRect.height > 0) item.mainSize = node.contentRect.height;
-    }
+  // 回填撑开的尺寸
+  if (node.computedStyle.boxModel[ctx.isRow ? 'height' : 'width'].type === 'keyword') {
+    if (ctx.isRow) item.crossSize = Math.max(item.crossSize, node.contentRect.height);
+    else item.mainSize = Math.max(item.mainSize, node.contentRect.height);
   }
 }
 
 function applyAbsolutePositions(ctx: FlexContext): void {
-  const { isRow, isReverse, isWrapReverse, lines, gapCross, contentOriginX, contentOriginY, containerCrossSize } = ctx;
-  let totalCrossSize = 0;
-  for (const line of lines) totalCrossSize += line.crossSize;
-  totalCrossSize += Math.max(0, lines.length - 1) * gapCross;
-  let crossOffset = isWrapReverse ? (containerCrossSize > 0 ? containerCrossSize : totalCrossSize) : 0;
-
+  const { isRow, isReverse, isWrapReverse, lines, gapCross, containerMainSize } = ctx;
+  let crossOffset = 0;
   for (const line of lines) {
     for (const item of line.items) {
-      let mainPos = item.mainPos;
-      let crossPos = isWrapReverse ? (crossOffset - line.crossSize + item.crossPos) : (crossOffset + item.crossPos);
-      if (isReverse) mainPos = ctx.containerMainSize - mainPos - item.mainSize - item.mainPaddingBorder;
-
+      let mPos = item.mainPos;
+      if (isReverse) mPos = containerMainSize - mPos - item.mainSize - item.mainPaddingBorder;
+      const cPos = item.crossPos + crossOffset;
       const bm = item.node.computedStyle.boxModel;
-      const padLeft = resolveLength(bm.paddingLeft);
-      const padTop = resolveLength(bm.paddingTop);
-      const borderLeft = resolveLength(bm.borderLeftWidth);
-      const borderTop = resolveLength(bm.borderTopWidth);
+      const pL = resolveLength(bm.paddingLeft), pT = resolveLength(bm.paddingTop);
+      const bL = resolveLength(bm.borderLeftWidth), bT = resolveLength(bm.borderTopWidth);
 
       if (isRow) {
-        item.node.contentRect.x = contentOriginX + mainPos + padLeft + borderLeft;
-        item.node.contentRect.y = contentOriginY + crossPos + padTop + borderTop;
+        item.node.contentRect.x = mPos + pL + bL;
+        item.node.contentRect.y = cPos + pT + bT;
         item.node.contentRect.width = item.mainSize;
         item.node.contentRect.height = item.crossSize;
       } else {
-        item.node.contentRect.x = contentOriginX + crossPos + padLeft + borderLeft;
-        item.node.contentRect.y = contentOriginY + mainPos + padTop + borderTop;
+        item.node.contentRect.x = cPos + pL + bL;
+        item.node.contentRect.y = mPos + pT + bT;
         item.node.contentRect.width = item.crossSize;
         item.node.contentRect.height = item.mainSize;
       }
-      item.node.boxModel.paddingLeft = padLeft;
-      item.node.boxModel.paddingRight = resolveLength(bm.paddingRight);
-      item.node.boxModel.paddingTop = padTop;
-      item.node.boxModel.paddingBottom = resolveLength(bm.paddingBottom);
-      item.node.boxModel.borderLeft = borderLeft;
-      item.node.boxModel.borderRight = resolveLength(bm.borderRightWidth);
-      item.node.boxModel.borderTop = borderTop;
-      item.node.boxModel.borderBottom = resolveLength(bm.borderBottomWidth);
-      item.node.boxModel.marginLeft = isRow ? item.mainMarginStart : item.crossMarginStart;
-      item.node.boxModel.marginRight = isRow ? item.mainMarginEnd : item.crossMarginEnd;
-      item.node.boxModel.marginTop = isRow ? item.crossMarginStart : item.mainMarginStart;
-      item.node.boxModel.marginBottom = isRow ? item.crossMarginEnd : item.mainMarginEnd;
     }
-    crossOffset += isWrapReverse ? -(line.crossSize + gapCross) : (line.crossSize + gapCross);
+    crossOffset += line.crossSize + gapCross;
   }
 }

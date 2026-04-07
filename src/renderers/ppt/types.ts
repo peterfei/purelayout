@@ -20,6 +20,7 @@ export interface PPTSlideObject {
     bold: boolean;
     align: 'left' | 'center' | 'right';
   };
+  src?: string; // For image type, path to the image file or base64 data
 }
 
 export interface PPTSlide {

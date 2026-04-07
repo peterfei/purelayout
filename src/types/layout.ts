@@ -34,6 +34,7 @@ export interface LayoutNode {
   sourceIndex: number;
   type: LayoutNodeType;
   tagName: string;
+  className?: string; // 添加 className 属性
   testId?: string;
   computedStyle: ComputedStyle;
   contentRect: Rect;

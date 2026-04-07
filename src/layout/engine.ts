@@ -53,32 +53,64 @@ export function layout(root: StyleNode, options: LayoutOptions): LayoutTree {
 
   // 4. 后处理：递归将所有相对坐标转换为全局绝对坐标
   // 注意：LineBox 和 ContentRect 都要转换，且只能转换一次
-  finalizeAbsolutePositions(rootLayout, rootLayout.contentRect.x, rootLayout.contentRect.y);
+  finalizeAbsolutePositions(rootLayout, rootLayout.contentRect.x, rootLayout.contentRect.y, options);
 
   return { root: rootLayout, options };
 }
 
-function finalizeAbsolutePositions(node: LayoutNode, absX: number, absY: number): void {
+function finalizeAbsolutePositions(node: LayoutNode, absX: number, absY: number, options: LayoutOptions): void {
+  // console.log(`Finalizing ${node.tagName} (${node.sourceIndex}) at abs(${absX}, ${absY})`);
+  
   // 更新该节点的 LineBox 坐标 (它们是相对于该节点内容区顶点的)
   if (node.lineBoxes) {
     for (const lb of node.lineBoxes) {
       lb.y += absY;
+      // console.log(`  LineBox at Y: ${lb.y}`);
       for (const frag of lb.fragments) {
         frag.x += absX;
+        // console.log(`    Fragment "${frag.text}" at X: ${frag.x}`);
       }
     }
   }
 
   // 递归处理子节点
   for (const child of node.children) {
-    // 子节点 contentRect.x/y 是相对于父节点内容区顶点的
-    const childAbsX = absX + child.contentRect.x;
-    const childAbsY = absY + child.contentRect.y;
+    // 检查子节点是否是绝对定位
+    const isAbsolute = child.computedStyle.boxModel.position === 'absolute';
+    let relX = child.contentRect.x;
+    let relY = child.contentRect.y;
+
+    if (isAbsolute) {
+      // 如果是绝对定位，则 left/top 覆盖默认的流式布局坐标
+      const left = child.computedStyle.boxModel.left;
+      const top = child.computedStyle.boxModel.top;
+      
+      // 注意：目前简化处理，假设绝对定位是相对于父节点内容区左上角的
+      if (left && left.type !== 'keyword') {
+        relX = resolveLength(left, node.contentRect.width);
+      }
+      if (top && top.type !== 'keyword') {
+        relY = resolveLength(top, node.contentRect.height);
+      }
+
+      // 核心修复：手动触发布局，因为绝对定位元素在父级的 BFC 循环中被跳过了
+      const childContainingBlock = { width: node.contentRect.width, height: undefined };
+      if (child.type === 'grid') {
+        layoutGridFormattingContext(child, childContainingBlock, options);
+      } else if (child.type === 'flex') {
+        layoutFlexFormattingContext(child, childContainingBlock, options);
+      } else if (child.type === 'block') {
+        layoutBlockFormattingContext(child, childContainingBlock, options);
+      }
+    }
+
+    const childAbsX = absX + relX;
+    const childAbsY = absY + relY;
     
     child.contentRect.x = childAbsX;
     child.contentRect.y = childAbsY;
     
-    finalizeAbsolutePositions(child, childAbsX, childAbsY);
+    finalizeAbsolutePositions(child, childAbsX, childAbsY, options);
   }
 }
 
@@ -94,7 +126,7 @@ function buildLayoutTree(node: StyleNode, parentComputed: ComputedStyle | null, 
     sourceIndex,
     type: isGrid ? 'grid' : (isFlex ? 'flex' : (isBlock ? 'block' : 'inline')),
     tagName: node.tagName,
-    testId: (node.style as Record<string, unknown>)['dataTestId'] as string | undefined,
+    testId: node.style ? (node.style as Record<string, unknown>)['dataTestId'] as string | undefined : undefined,
     computedStyle,
     contentRect: { x: 0, y: 0, width: 0, height: 0 },
     boxModel: createEmptyBoxModel(),

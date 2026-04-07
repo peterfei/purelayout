@@ -40,7 +40,7 @@ export function buildLineBoxes(
       sourceIndex: frag.sourceIndex,
       width: totalWidth,
       ascent: metrics.ascent,
-      descent: metrics.descent,
+      descent: metrics.ascent, // Use ascent for descent for now, simpler
       segments,
     });
   }
@@ -128,6 +128,7 @@ export function buildLineBoxes(
         if (lineSegments.length === 0) {
           // 行是空的但 segment 放不下 — 必须强制放入（unbreakable word）
           lineSegments.push(remaining[i]);
+          lineWidth += segWidth; // Ensure width is added even if forced
           i++;
         }
         break;

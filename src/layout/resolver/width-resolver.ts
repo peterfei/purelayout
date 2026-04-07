@@ -45,7 +45,8 @@ export function resolveWidth(
     width = Math.max(0, width - paddingLeft - paddingRight - borderLeft - borderRight);
   }
 
-  return { width: Math.max(0, width), paddingLeft, paddingRight, borderLeft, borderRight };
+  const finalWidth = Math.max(0, width);
+  return { width: finalWidth, paddingLeft, paddingRight, borderLeft, borderRight };
 }
 
 /**
